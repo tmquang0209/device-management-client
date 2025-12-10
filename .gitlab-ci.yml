@@ -1,0 +1,75 @@
+stages:
+  - deploy
+
+# Define the deploy job
+build_and_deploy:
+  stage: deploy
+  image: alpine:latest # Use a lightweight Linux image
+
+  # before_script runs before the main script
+  before_script:
+    - 'command -v ssh-agent >/dev/null || (apk add --update openssh-client)'
+    - apk add --no-cache bash coreutils openssh-keygen
+    - eval "$(ssh-agent -s)"
+
+    # 0) Tạo ~/.ssh trước khi ghi key
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+
+    # 1) $SSH_PRIVATE_KEY là biến **Type: File** -> đường dẫn file tạm
+    - |
+      if [ -f "$SSH_PRIVATE_KEY" ]; then
+        tmp_key="$(mktemp)"
+        tr -d '\r' < "$SSH_PRIVATE_KEY" > "$tmp_key"   # chuẩn hoá CRLF -> LF
+        install -m 400 "$tmp_key" ~/.ssh/id_ci         # giờ thư mục đã tồn tại
+        ssh-add ~/.ssh/id_ci
+      else
+        echo "SSH_PRIVATE_KEY (File) not found" >&2
+        exit 1
+      fi
+
+    # 2) known_hosts (tránh prompt yes/no)
+    - ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+    - chmod 644 ~/.ssh/known_hosts || true
+
+    # (tuỳ chọn) In fingerprint để xác minh, không lộ private key
+    - ssh-keygen -lf ~/.ssh/id_ci || true
+
+  # The main script, where deploy commands are executed
+  script:
+    - |
+      ssh $EC2_USER@$EC2_HOST "
+        set -e # <-- IMPORTANT: Exit immediately if any command fails
+
+        echo '>>> Connected to EC2. Starting deploy...'
+
+        # 1. Navigate to the project directory
+        cd $DEPLOY_PATH
+
+        # 2. Pull the latest code from the 'main' branch
+        echo '>>> Pulling latest code...'
+        git pull origin main
+
+        # 3. Install all dependencies (including devDependencies for build)
+        echo '>>> Installing dependencies (npm install)...'
+        npm install
+
+        # 4. Build the project (e.g., tsc, webpack, etc.)
+        echo '>>> Building project (npm run build)...'
+        npm run build
+
+        # 5. (Optional but recommended) Prune devDependencies for production
+        # echo '>>> Pruning devDependencies...'
+        # npm prune --production
+
+        # 6. Start or Restart the app with PM2
+        # Tries to restart service. If it fails (e.g., not found),
+        # it starts it for the first time.
+        echo '>>> Starting/Restarting PM2 process with $PM2_APP_NAME...'
+        pm2 restart $PM2_APP_NAME || pm2 start dist/main.js --name $PM2_APP_NAME
+
+        echo '>>> DEPLOYMENT SUCCESSFUL!'
+      "
+
+  # Rules to ensure this job only runs on the 'main' branch
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
