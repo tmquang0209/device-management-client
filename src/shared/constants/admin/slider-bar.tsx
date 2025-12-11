@@ -1,5 +1,4 @@
 import {
-  Building2,
   Clock,
   CreditCard,
   FileText,
@@ -82,7 +81,7 @@ export const menuItems: MenuItem[] = [
         id: "warranty-slip",
         icon: Receipt,
         label: "Phiếu bảo hành",
-        href: "/warranty",
+        href: "/maintenance-slip",
       },
       { id: "repair", icon: Wrench, label: "Sửa chữa", href: "/repair" },
       {
@@ -113,6 +112,12 @@ export const menuItems: MenuItem[] = [
     icon: Sliders,
     label: "Hệ thống",
     children: [
+      {
+        id: "param-config",
+        icon: Wrench,
+        label: "Cấu hình tham số",
+        href: "/param-config",
+      },
       {
         id: "system-config",
         icon: Settings,

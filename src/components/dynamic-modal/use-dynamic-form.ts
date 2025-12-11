@@ -108,10 +108,12 @@ export function useDynamicForm<TData = unknown>({
   );
 
   const onSubmit = (data: z.infer<typeof schema>) => {
+    console.log("Form Data before parsing:", data, schema);
     // must parse async select fields to extract values
     fields.forEach((field: IFormFieldConfig) => {
       if (field.type === "async-select") {
         const fieldValue = data[field.name];
+        console.log("Parsing field:", field.name, fieldValue);
         if (Array.isArray(fieldValue)) {
           // multiselect
           data[field.name] = fieldValue.map(

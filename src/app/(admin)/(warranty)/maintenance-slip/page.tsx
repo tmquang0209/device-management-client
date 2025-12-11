@@ -15,45 +15,61 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { api } from "@/shared/data/api";
-import { IPaginatedResponse, IWarrantyInfo } from "@/shared/interfaces";
+import { IMaintenanceSlipInfo, IPaginatedResponse } from "@/shared/interfaces";
 import {
-  createWarrantySchema,
-  updateWarrantySchema,
-} from "@/shared/schema/admin/warranty.schema";
+  createMaintenanceSlipSchema,
+  updateMaintenanceSlipSchema,
+} from "@/shared/schema/admin/maintenance-slip.schema";
 import { useQueryClient } from "@tanstack/react-query";
 import { ColumnDef } from "@tanstack/react-table";
 import dayjs from "dayjs";
-import {
-  CheckCircle,
-  Clock,
-  MoreHorizontal,
-  Plus,
-  XCircle,
-} from "lucide-react";
+import { MoreHorizontal, Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-// Warranty status mapping
-const warrantyStatusMap = {
-  1: { label: "Chờ Xử Lý", variant: "warning" as const, icon: Clock },
-  2: { label: "Đang Xử Lý", variant: "default" as const, icon: Clock },
-  3: { label: "Hoàn Thành", variant: "success" as const, icon: CheckCircle },
-  4: { label: "Từ Chối", variant: "destructive" as const, icon: XCircle },
+const statusMap = {
+  1: { label: "Hoạt Động", variant: "success" as const },
+  0: { label: "Ngừng Hoạt Động", variant: "secondary" as const },
 };
 
-const createColumns = (): ColumnDef<IWarrantyInfo>[] => [
+const createColumns = (): ColumnDef<IMaintenanceSlipInfo>[] => [
   {
     accessorKey: "device",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Thiết Bị" />
     ),
     cell: ({ row }) => {
-      const device = row.getValue("device") as IWarrantyInfo["device"];
+      const device = row.getValue("device") as IMaintenanceSlipInfo["device"];
       if (!device) return "N/A";
-      const serialPart = device.serial ? `(${device.serial})` : "";
-      return `${device.deviceName} ${serialPart}`;
+      const serial = device.serial ? `(${device.serial})` : "";
+      return `${device.deviceName} ${serial}`.trim();
     },
     enableColumnFilter: false,
+    minSize: 200,
+  },
+  {
+    accessorKey: "partner",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Đối Tác" />
+    ),
+    cell: ({ row }) => {
+      const partner = row.getValue(
+        "partner",
+      ) as IMaintenanceSlipInfo["partner"];
+      if (!partner) return "N/A";
+      return partner.partnerType || partner.userId || partner.id;
+    },
+    enableColumnFilter: false,
+    minSize: 160,
+  },
+  {
+    accessorKey: "transferStatus",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Trạng Thái Chuyển Giao" />
+    ),
+    cell: ({ row }) => row.getValue("transferStatus") || "N/A",
+    enableColumnFilter: true,
+    meta: { label: "Trạng Thái Chuyển Giao", filterType: "text" },
     minSize: 200,
   },
   {
@@ -64,7 +80,7 @@ const createColumns = (): ColumnDef<IWarrantyInfo>[] => [
     cell: ({ row }) => row.getValue("reason") || "N/A",
     enableColumnFilter: true,
     meta: { label: "Lý Do", filterType: "text" },
-    minSize: 250,
+    minSize: 220,
   },
   {
     accessorKey: "requestDate",
@@ -77,7 +93,7 @@ const createColumns = (): ColumnDef<IWarrantyInfo>[] => [
     },
     enableColumnFilter: true,
     meta: { filterType: "date", label: "Ngày Yêu Cầu" },
-    size: 150,
+    size: 140,
   },
   {
     accessorKey: "status",
@@ -86,13 +102,10 @@ const createColumns = (): ColumnDef<IWarrantyInfo>[] => [
     ),
     cell: ({ row }) => {
       const status = row.getValue("status") as number;
-      const statusInfo =
-        warrantyStatusMap[status as keyof typeof warrantyStatusMap];
-      const Icon = statusInfo?.icon;
+      const info = statusMap[(status as 0 | 1) ?? 1];
       return (
-        <Badge variant={statusInfo?.variant || "default"} className="gap-1">
-          {Icon && <Icon className="h-3 w-3" />}
-          {statusInfo?.label || "Không xác định"}
+        <Badge variant={info?.variant || "default"}>
+          {info?.label || "N/A"}
         </Badge>
       );
     },
@@ -101,10 +114,8 @@ const createColumns = (): ColumnDef<IWarrantyInfo>[] => [
       label: "Trạng Thái",
       filterType: "select",
       options: [
-        { label: "Chờ Xử Lý", value: 1 },
-        { label: "Đang Xử Lý", value: 2 },
-        { label: "Hoàn Thành", value: 3 },
-        { label: "Từ Chối", value: 4 },
+        { label: "Hoạt Động", value: 1 },
+        { label: "Ngừng Hoạt Động", value: 0 },
       ],
     },
     size: 150,
@@ -133,17 +144,11 @@ const createColumns = (): ColumnDef<IWarrantyInfo>[] => [
   },
 ];
 
-function WarrantyActions(
-  row: Readonly<IWarrantyInfo>,
-  onDelete: (w: IWarrantyInfo) => void,
-  onEdit: (w: IWarrantyInfo) => void,
-  onComplete: (w: IWarrantyInfo) => void,
-  onReject: (w: IWarrantyInfo) => void,
+function RowActions(
+  row: Readonly<IMaintenanceSlipInfo>,
+  onDelete: (r: IMaintenanceSlipInfo) => void,
+  onEdit: (r: IMaintenanceSlipInfo) => void,
 ) {
-  const canComplete = row.status === 1 || row.status === 2;
-  const canReject = row.status === 1 || row.status === 2;
-  const canCancel = row.status === 1 || row.status === 2;
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -157,8 +162,8 @@ function WarrantyActions(
             try {
               await navigator.clipboard.writeText(row.id);
               toast.success("ID đã sao chép vào bộ nhớ đệm");
-            } catch (error) {
-              console.error("Failed to copy ID:", error);
+            } catch (err) {
+              console.error("Failed to copy ID:", err);
               toast.error("Không thể sao chép ID");
             }
           }}
@@ -169,33 +174,19 @@ function WarrantyActions(
         <DropdownMenuItem onClick={() => onEdit(row)}>
           Chỉnh Sửa
         </DropdownMenuItem>
-        {canComplete && (
-          <DropdownMenuItem onClick={() => onComplete(row)}>
-            Hoàn Thành
-          </DropdownMenuItem>
-        )}
-        {canReject && (
-          <DropdownMenuItem onClick={() => onReject(row)}>
-            Từ Chối
-          </DropdownMenuItem>
-        )}
-        {canCancel && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => onDelete(row)}
-              className="text-destructive"
-            >
-              Hủy Phiếu
-            </DropdownMenuItem>
-          </>
-        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => onDelete(row)}
+          className="text-destructive"
+        >
+          Xóa
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
 
-export default function WarrantyPage() {
+export default function MaintenanceSlipPage() {
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState<boolean>(false);
   const [type, setType] = useState<"create" | "edit" | "view" | "delete">(
@@ -207,13 +198,11 @@ export default function WarrantyPage() {
     setMounted(true);
   }, []);
 
-  // Async select will fetch devices on demand; no need to preload here
-
   const columns = useMemo(() => createColumns(), []);
 
-  const getWarranties = async (params: Record<string, unknown>) => {
-    const response = await api.get<IPaginatedResponse<IWarrantyInfo>>(
-      "/warranties",
+  const getList = async (params: Record<string, unknown>) => {
+    const response = await api.get<IPaginatedResponse<IMaintenanceSlipInfo>>(
+      "/maintenance-slips",
       { params },
     );
     return response;
@@ -227,38 +216,16 @@ export default function WarrantyPage() {
     setOpen(true);
   };
 
-  const onDelete = (w: IWarrantyInfo) => {
+  const onDelete = (r: IMaintenanceSlipInfo) => {
     setType("delete");
-    setSelectedId(w.id);
+    setSelectedId(r.id);
     setOpen(true);
   };
 
-  const onEdit = (w: IWarrantyInfo) => {
+  const onEdit = (r: IMaintenanceSlipInfo) => {
     setType("edit");
-    setSelectedId(w.id);
+    setSelectedId(r.id);
     setOpen(true);
-  };
-
-  const onComplete = async (w: IWarrantyInfo) => {
-    try {
-      await api.put(`/warranties/${w.id}/complete`, {});
-      toast.success("Phiếu bảo hành đã được hoàn thành");
-      queryClient.invalidateQueries({ queryKey: ["warranties"], exact: false });
-    } catch (error) {
-      console.error("Failed to complete warranty:", error);
-      toast.error("Không thể hoàn thành phiếu bảo hành");
-    }
-  };
-
-  const onReject = async (w: IWarrantyInfo) => {
-    try {
-      await api.put(`/warranties/${w.id}/reject`, {});
-      toast.success("Phiếu bảo hành đã bị từ chối");
-      queryClient.invalidateQueries({ queryKey: ["warranties"], exact: false });
-    } catch (error) {
-      console.error("Failed to reject warranty:", error);
-      toast.error("Không thể từ chối phiếu bảo hành");
-    }
   };
 
   const fields = useMemo((): IFormFieldConfig[] => {
@@ -272,14 +239,30 @@ export default function WarrantyPage() {
         queryParams: { page: 1, pageSize: 50 },
         transformKey: { value: "id", label: "deviceName" },
         mappingField: "id",
-        description: "Chọn thiết bị cần bảo hành",
+        description: "Chọn thiết bị cần bảo trì",
+      },
+      {
+        name: "partnerId",
+        label: "Đối Tác",
+        type: "async-select",
+        placeholder: "Chọn đối tác",
+        endpoint: "/partners",
+        queryParams: { page: 1, pageSize: 50 },
+        transformKey: { value: "id", label: "partnerType" },
+        mappingField: "id",
+        description: "Chọn đối tác (nếu có)",
+      },
+      {
+        name: "transferStatus",
+        label: "Trạng Thái Chuyển Giao",
+        type: "text",
+        placeholder: "Nhập trạng thái chuyển giao",
       },
       {
         name: "reason",
         label: "Lý Do",
         type: "textarea",
-        placeholder: "Nhập lý do bảo hành",
-        description: "Mô tả chi tiết lý do cần bảo hành",
+        placeholder: "Nhập lý do bảo trì",
       },
       {
         name: "requestDate",
@@ -293,43 +276,33 @@ export default function WarrantyPage() {
         type: "select",
         placeholder: "Chọn trạng thái",
         options: [
-          { label: "Chờ Xử Lý", value: "1" },
-          { label: "Đang Xử Lý", value: "2" },
-          { label: "Hoàn Thành", value: "3" },
-          { label: "Từ Chối", value: "4" },
+          { label: "Hoạt Động", value: "1" },
+          { label: "Ngừng Hoạt Động", value: "0" },
         ],
       },
     ];
   }, []);
 
   const modalConfig = useMemo(() => {
-    const base = "/warranties" as const;
+    const base = "/maintenance-slips" as const;
     const idPath = selectedId ? `${base}/${selectedId}` : base;
 
-    let apiEndpoint: string = base;
-    if (type === "delete") {
-      apiEndpoint = `${idPath}/cancel`;
-    } else if (type !== "create") {
-      apiEndpoint = idPath;
-    }
-
+    const apiEndpoint = type === "create" ? base : idPath;
     const fetchDetailsEndpoint = selectedId ? idPath : "";
     const schema =
-      type === "edit" ? updateWarrantySchema : createWarrantySchema;
+      type === "edit"
+        ? updateMaintenanceSlipSchema
+        : createMaintenanceSlipSchema;
 
-    let title = "Phiếu Bảo Hành";
-    if (type === "create") title = "Tạo Phiếu Bảo Hành";
-    else if (type === "edit") title = "Chỉnh Sửa Phiếu Bảo Hành";
-    else if (type === "delete") title = "Hủy Phiếu Bảo Hành";
+    let title = "Phiếu Bảo Trì";
+    if (type === "create") title = "Tạo Phiếu Bảo Trì";
+    else if (type === "edit") title = "Chỉnh Sửa Phiếu Bảo Trì";
+    else if (type === "delete") title = "Xóa Phiếu Bảo Trì";
 
     let subtitle = "";
-    if (type === "create") {
-      subtitle = "Tạo phiếu bảo hành mới cho thiết bị";
-    } else if (type === "edit") {
-      subtitle = "Chỉnh sửa thông tin phiếu bảo hành";
-    } else {
-      subtitle = "Bạn có chắc chắn muốn hủy phiếu bảo hành này?";
-    }
+    if (type === "create") subtitle = "Tạo phiếu bảo trì mới cho thiết bị";
+    else if (type === "edit") subtitle = "Chỉnh sửa thông tin phiếu bảo trì";
+    else subtitle = "Bạn có chắc chắn muốn xóa phiếu bảo trì này?";
 
     return { apiEndpoint, fetchDetailsEndpoint, schema, title, subtitle };
   }, [type, selectedId]);
@@ -337,8 +310,8 @@ export default function WarrantyPage() {
   if (!mounted) {
     return (
       <Card className="bg-white p-6 dark:bg-gray-800">
-        <h1 className="text-2xl font-bold">Quản Lý Phiếu Bảo Hành</h1>
-        <p className="text-muted-foreground">Quản lý phiếu bảo hành thiết bị</p>
+        <h1 className="text-2xl font-bold">Quản Lý Phiếu Bảo Trì</h1>
+        <p className="text-muted-foreground">Quản lý phiếu bảo trì thiết bị</p>
         <div className="flex h-64 items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" />
         </div>
@@ -348,25 +321,23 @@ export default function WarrantyPage() {
 
   return (
     <Card className="bg-white p-6 dark:bg-gray-800">
-      <h1 className="text-2xl font-bold">Quản Lý Phiếu Bảo Hành</h1>
-      <p className="text-muted-foreground">Quản lý phiếu bảo hành thiết bị</p>
+      <h1 className="text-2xl font-bold">Quản Lý Phiếu Bảo Trì</h1>
+      <p className="text-muted-foreground">Quản lý phiếu bảo trì thiết bị</p>
 
-      <DataTable<IWarrantyInfo, unknown>
+      <DataTable<IMaintenanceSlipInfo, unknown>
         columns={columns}
-        queryKey={["warranties"]}
-        queryFn={getWarranties}
+        queryKey={["maintenance-slips"]}
+        queryFn={getList}
         searchColumn="reason"
-        searchPlaceholder="Tìm kiếm phiếu bảo hành..."
+        searchPlaceholder="Tìm kiếm phiếu bảo trì..."
         initialFilters={{}}
-        emptyMessage="Không tìm thấy phiếu bảo hành nào."
+        emptyMessage="Không tìm thấy phiếu bảo trì nào."
         globalActions={
           <Button onClick={onCreate}>
             <Plus className="h-4 w-4" />
           </Button>
         }
-        columnActions={(row) =>
-          WarrantyActions(row, onDelete, onEdit, onComplete, onReject)
-        }
+        columnActions={(row) => RowActions(row, onDelete, onEdit)}
       />
 
       {open && (
@@ -384,7 +355,7 @@ export default function WarrantyPage() {
           fetchDetailsEndpoint={modalConfig.fetchDetailsEndpoint}
           onSuccess={() => {
             queryClient.invalidateQueries({
-              queryKey: ["warranties"],
+              queryKey: ["maintenance-slips"],
               exact: false,
             });
             if (modalConfig.fetchDetailsEndpoint) {
