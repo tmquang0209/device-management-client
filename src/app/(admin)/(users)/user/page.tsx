@@ -212,7 +212,7 @@ export default function UserPage() {
         value: partner.id,
       })) || [];
 
-    return [
+    const baseFields: IFormFieldConfig[] = [
       {
         name: "name",
         label: "Tên",
@@ -233,14 +233,21 @@ export default function UserPage() {
         type: "email",
         placeholder: "Nhập địa chỉ email",
       },
-      {
+    ];
+
+    // Only show password field when creating a new user
+    if (type === "create") {
+      baseFields.push({
         name: "password",
         label: "Mật Khẩu",
         type: "password",
         placeholder: "Nhập mật khẩu",
-        description: "Để trống nếu muốn giữ mật khẩu cũ (khi chỉnh sửa)",
+        description: "Mật khẩu phải có ít nhất 6 ký tự",
         showPasswordToggle: true,
-      },
+      });
+    }
+
+    baseFields.push(
       {
         name: "roleType",
         label: "Loại Vai Trò",
@@ -266,10 +273,13 @@ export default function UserPage() {
         name: "status",
         label: "Trạng Thái Hoạt Động",
         type: "checkbox",
-        description: "Người dùng có hoạt động không?",
+        description:
+          "Người dùng có hoạt động không? (Active = bật, Inactive = tắt)",
       },
-    ];
-  }, [partnersData]);
+    );
+
+    return baseFields;
+  }, [partnersData, type]);
 
   // Create columns
   const columns = useMemo(() => createColumns(), []);
@@ -309,16 +319,17 @@ export default function UserPage() {
     const isEdit = type === "edit";
     const isDelete = type === "delete";
     const titleMap = {
-      create: "Create New User",
-      edit: "Edit User",
-      view: "View User",
-      delete: "Lock User",
+      create: "Thêm Người Dùng Mới",
+      edit: "Chỉnh Sửa Người Dùng",
+      view: "Xem Thông Tin Người Dùng",
+      delete: "Bật/Tắt Trạng Thái Người Dùng",
     } as const;
     const subtitleMap = {
-      create: "Fill in the details below to create a new user.",
-      edit: "Modify the user information below.",
-      view: "View the user details.",
-      delete: "Are you sure you want to lock/unlock this user?",
+      create: "Điền thông tin để tạo người dùng mới.",
+      edit: "Chỉnh sửa thông tin người dùng (không thể thay đổi mật khẩu ở đây).",
+      view: "Xem chi tiết thông tin người dùng.",
+      delete:
+        "Bạn có chắc chắn muốn thay đổi trạng thái hoạt động của người dùng này?",
     } as const;
 
     const base = "/users" as const;

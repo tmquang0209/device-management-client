@@ -1,23 +1,10 @@
+import { IRack } from "./device-location.interface";
 import { IPaginationRequest } from "./pagination.interface";
 
 export interface IDeviceType {
   id: string;
   deviceTypeName: string;
   description?: string;
-}
-
-export interface IDeviceLocation {
-  id: string;
-  xPosition?: string;
-  yPosition?: string;
-  status: number;
-}
-
-export interface IRack {
-  id: string;
-  code: string;
-  status: number;
-  deviceLocations?: IDeviceLocation[];
 }
 
 export interface ISupplier {

@@ -5,10 +5,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEffect, useState } from "react";
 import { DeviceLocationTab } from "../../../../shared/components/admin/device-location/device-location-tab";
 import { RackTab } from "../../../../shared/components/admin/device-location/rack-tab";
+import { WarehouseLayoutTab } from "../../../../shared/components/admin/device-location/warehouse-layout-tab";
 
 export default function DeviceLocationPage() {
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<"rack" | "location">("rack");
+  const [activeTab, setActiveTab] = useState<"warehouse" | "rack" | "location">(
+    "warehouse",
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -33,19 +36,26 @@ export default function DeviceLocationPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Quản Lý Vị Trí Lưu Trữ</h1>
         <p className="text-muted-foreground">
-          Quản lý các rack và vị trí lưu trữ thiết bị trong hệ thống
+          Quản lý sơ đồ kho, rack và vị trí lưu trữ thiết bị trong hệ thống
         </p>
       </div>
 
       <Tabs
         value={activeTab}
-        onValueChange={(value) => setActiveTab(value as "rack" | "location")}
+        onValueChange={(value) =>
+          setActiveTab(value as "warehouse" | "rack" | "location")
+        }
         className="w-full"
       >
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="warehouse">Sơ Đồ Kho</TabsTrigger>
           <TabsTrigger value="rack">Quản Lý Rack</TabsTrigger>
           <TabsTrigger value="location">Quản Lý Vị Trí Lưu Trữ</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="warehouse" className="mt-6">
+          <WarehouseLayoutTab />
+        </TabsContent>
 
         <TabsContent value="rack" className="mt-6">
           <RackTab mounted={mounted} />

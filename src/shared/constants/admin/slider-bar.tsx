@@ -69,7 +69,7 @@ export const menuItems: MenuItem[] = [
         href: "/loan-slip",
       },
       { id: "return", icon: RotateCw, label: "Hoàn trả", href: "/return" },
-      { id: "history", icon: Clock, label: "Lịch sử", href: "/history" },
+      // { id: "history", icon: Clock, label: "Lịch sử", href: "/history" },
     ],
   },
   {
@@ -83,13 +83,13 @@ export const menuItems: MenuItem[] = [
         label: "Phiếu bảo hành",
         href: "/maintenance-slip",
       },
-      { id: "repair", icon: Wrench, label: "Sửa chữa", href: "/repair" },
-      {
-        id: "waiting-list",
-        icon: Clock,
-        label: "Danh sách đợi",
-        href: "/waiting-list",
-      },
+      // { id: "repair", icon: Wrench, label: "Sửa chữa", href: "/repair" },
+      // {
+      //   id: "waiting-list",
+      //   icon: Clock,
+      //   label: "Danh sách đợi",
+      //   href: "/waiting-list",
+      // },
     ],
   },
   {
@@ -124,7 +124,7 @@ export const menuItems: MenuItem[] = [
         label: "Thông số hệ thống",
         href: "/config",
       },
-      { id: "role", icon: Shield, label: "Phân quyền", href: "/role" },
+      // { id: "role", icon: Shield, label: "Phân quyền", href: "/role" },
       { id: "audit", icon: FileText, label: "Audit Logs", href: "/audit-logs" },
     ],
   },
