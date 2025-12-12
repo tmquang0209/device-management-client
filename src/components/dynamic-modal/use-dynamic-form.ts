@@ -56,6 +56,59 @@ export function useDynamicForm<TData = unknown>({
                         item[field.mappingField!],
                     )
                   : [];
+              } else if (field.type === "select" && field.options) {
+                const rawValue = (detailsData.data as Record<string, unknown>)[
+                  field.name
+                ];
+                // Normalize select value type to match option values
+                const optionValues = field.options.map((o) => o.value);
+                const areOptionValuesStrings = optionValues.every(
+                  (v) => typeof v === "string",
+                );
+                const areOptionValuesNumbers = optionValues.every(
+                  (v) => typeof v === "number",
+                );
+
+                if (rawValue !== undefined && rawValue !== null) {
+                  if (areOptionValuesStrings) {
+                    acc[field.name] = String(rawValue);
+                  } else if (areOptionValuesNumbers) {
+                    const num =
+                      typeof rawValue === "number"
+                        ? rawValue
+                        : Number.parseInt(String(rawValue), 10);
+                    acc[field.name] = Number.isNaN(num) ? undefined : num;
+                  } else {
+                    acc[field.name] = rawValue as unknown;
+                  }
+                }
+              } else if (field.type === "async-select") {
+                const rawValue = (detailsData.data as Record<string, unknown>)[
+                  field.name
+                ];
+
+                // Attempt to derive a human-friendly label from nested object
+                const nestedKey = field.name.replace(/Id$/, "");
+
+                const nestedObject = (
+                  detailsData.data as Record<string, unknown>
+                )[nestedKey] as Record<string, unknown> | undefined;
+                const labelKey =
+                  field.transformKey?.label || field.mappingField || "name";
+
+                let label: string | number | undefined;
+
+                if (nestedObject && labelKey in nestedObject) {
+                  label = nestedObject[labelKey] as string | number | undefined;
+                }
+
+                if (rawValue !== undefined && rawValue !== null) {
+                  acc[field.name] = {
+                    value: rawValue as string | number,
+                    label:
+                      label !== undefined ? String(label) : String(rawValue),
+                  };
+                }
               }
               return acc;
             },
@@ -71,7 +124,7 @@ export function useDynamicForm<TData = unknown>({
         form.reset(initialData);
       }
     }
-  }, [open, detailsData, type, initialData, form.reset, fields]);
+  }, [open, detailsData, type, initialData, fields, form]);
 
   const mutation = useMutation<IResponse<TData>, Error, z.infer<typeof schema>>(
     {

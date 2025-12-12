@@ -15,12 +15,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { api } from "@/shared/data/api";
-import { IPaginatedResponse, IPartner, IUserInfo } from "@/shared/interfaces";
+import { IPaginatedResponse, IPartner } from "@/shared/interfaces";
 import {
   createPartnerSchema,
   updatePartnerSchema,
 } from "@/shared/schema/admin/partner.schema";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { ColumnDef } from "@tanstack/react-table";
 import dayjs from "dayjs";
 import { MoreHorizontal, Plus } from "lucide-react";
@@ -186,32 +186,17 @@ export default function PartnerPage() {
     setMounted(true);
   }, []);
 
-  // Fetch users for selection
-  const { data: usersData } = useQuery({
-    queryKey: ["users"],
-    queryFn: async () => {
-      const response = await api.get<IPaginatedResponse<IUserInfo>>(
-        "/users/get-list",
-        { params: { page: 1, pageSize: 1000 } },
-      );
-      return response;
-    },
-  });
-
   const partnerFields = useMemo((): IFormFieldConfig[] => {
-    const userOptions =
-      usersData?.data.map((user) => ({
-        label: `${user.name} (${user.email})`,
-        value: user.id,
-      })) || [];
-
     return [
       {
         name: "userId",
         label: "Người Dùng",
-        type: "select",
+        type: "async-select",
         placeholder: "Chọn người dùng",
-        options: userOptions,
+        endpoint: "/users/get-list",
+        queryParams: { page: 1, pageSize: 50 },
+        transformKey: { value: "id", label: "name" },
+        mappingField: "id",
         description: "Chọn người dùng để liên kết với đối tác",
         className: "w-full",
       },
@@ -241,7 +226,7 @@ export default function PartnerPage() {
         className: "w-full",
       },
     ];
-  }, [usersData]);
+  }, []);
 
   // Create columns
   const columns = useMemo(() => createColumns(), []);

@@ -118,11 +118,13 @@ export function AsyncSelect<T = Record<string, unknown>>(
           | string
           | number,
       }));
+
+      console.log("🚀 ~ AsyncSelect ~ transformedData:", transformedData);
       return transformedData;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
-  
+
   return (
     <div className={`w-full ${className}`}>
       <AsyncSelectComponent<AsyncSelectOption, false>

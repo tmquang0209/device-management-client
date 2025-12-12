@@ -261,15 +261,6 @@ export default function UserPage() {
         className: "w-full",
       },
       {
-        name: "partnerId",
-        label: "Đối Tác",
-        type: "select",
-        placeholder: "Chọn đối tác (tùy chọn)",
-        options: partnerOptions,
-        description: "Liên kết người dùng với đối tác",
-        className: "w-full",
-      },
-      {
         name: "status",
         label: "Trạng Thái Hoạt Động",
         type: "checkbox",

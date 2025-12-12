@@ -2,7 +2,7 @@ import { z } from "zod";
 
 // CreatePartner schema
 export const createPartnerSchema = z.object({
-  userId: z.string().min(1, "User is required"),
+  userId: z.any(),
   partnerType: z.union([
     z.number().int().min(0, "Partner type must be a valid number"),
     z.string().transform((val) => Number.parseInt(val, 10)),
@@ -20,8 +20,8 @@ export type CreatePartnerFormValues = z.infer<typeof createPartnerSchema>;
 
 // UpdatePartner schema
 export const updatePartnerSchema = z.object({
-  id: z.string(),
-  userId: z.string().min(1, "User is required").optional(),
+  // id: z.string(),
+  userId: z.any(),
   partnerType: z
     .union([
       z.number().int().min(0, "Partner type must be a valid number"),

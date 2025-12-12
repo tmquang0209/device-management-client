@@ -184,6 +184,11 @@ export function FormFieldRenderer({
                     }
                   }
 
+                  console.log(
+                    "🚀 ~ FormFieldRenderer ~ currentValue:",
+                    currentValue,
+                    formField.value,
+                  );
                   return (
                     <AsyncSelect
                       endpoint={field.endpoint}
