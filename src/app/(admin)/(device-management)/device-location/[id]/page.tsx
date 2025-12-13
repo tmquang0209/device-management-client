@@ -30,7 +30,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Check, X } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 interface CellData {
@@ -52,7 +52,10 @@ export default function RackDiagramPage() {
   const params = useParams();
   const router = useRouter();
   const rackId = params.id as string;
+  const CELL_SIZE = 120; // px: keep cells square and aligned
+  const initializedRef = useRef(false);
   const [cells, setCells] = useState<Map<string, CellData>>(new Map());
+  const [cellsReady, setCellsReady] = useState(false);
   const [cursorPosition, setCursorPosition] = useState({ row: 1, col: 1 });
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const [loadingDevices, setLoadingDevices] = useState(false);
@@ -171,7 +174,10 @@ export default function RackDiagramPage() {
     });
 
     setCells(newCells);
+    setCellsReady(true);
   }, [rackDevicesData]);
+
+  // On first load, focus the first empty cell left->right, top->bottom
 
   const getCellKey = (row: number, col: number) => `${row}-${col}`;
 
@@ -187,39 +193,38 @@ export default function RackDiagramPage() {
     return result;
   };
 
-  const calculateNextPosition = (
-    currentRow: number,
-    currentCol: number,
-    maxRows: number,
-    maxCols: number,
-  ): { row: number; col: number } => {
-    if (currentCol === maxCols) {
-      if (currentRow === maxRows) {
-        return { row: currentRow, col: currentCol };
-      }
-      return findFirstEmptyPosition(1, currentRow + 1, maxRows, maxCols);
-    }
+  const findNextEmptyLinear = useCallback(
+    (
+      startRow: number,
+      startCol: number,
+      maxRows: number,
+      maxCols: number,
+      occupied: Set<string>,
+    ): { row: number; col: number } => {
+      let row = startRow;
+      let col = startCol + 1; // move to next cell first
 
-    return findFirstEmptyPosition(currentCol + 1, currentRow, maxRows, maxCols);
-  };
+      const total = maxRows * maxCols;
+      for (let i = 0; i < total; i++) {
+        if (col > maxCols) {
+          col = 1;
+          row += 1;
+        }
+        if (row > maxRows) break;
 
-  const findFirstEmptyPosition = (
-    startCol: number,
-    startRow: number,
-    maxRows: number,
-    maxCols: number,
-  ): { row: number; col: number } => {
-    for (let row = startRow; row <= maxRows; row++) {
-      const colStart = row === startRow ? startCol : 1;
-      for (let col = colStart; col <= maxCols; col++) {
         const key = getCellKey(row, col);
-        if (!cells.has(key)) {
+        if (!occupied.has(key)) {
           return { row, col };
         }
+
+        col += 1;
       }
-    }
-    return { row: startRow, col: startCol };
-  };
+
+      // No empty cell found; stay where we are
+      return { row: startRow, col: startCol };
+    },
+    [],
+  );
 
   const openCellDropdown = (row: number, col: number) => {
     setCursorPosition({ row, col });
@@ -233,6 +238,35 @@ export default function RackDiagramPage() {
       };
     });
   };
+
+  // On first load, focus the first empty cell left->right, top->bottom
+  useEffect(() => {
+    if (!rack || !cellsReady) return;
+    if (initializedRef.current) return;
+
+    const occupied = new Set(Array.from(cells.keys()));
+    const nextPos = findNextEmptyLinear(1, 0, rack.rows, rack.cols, occupied);
+
+    setCursorPosition(nextPos);
+    setEditingCell({
+      row: nextPos.row,
+      col: nextPos.col,
+      value: "",
+      isOpen: false,
+    });
+    initializedRef.current = true;
+  }, [rack, cellsReady, cells, findNextEmptyLinear]);
+
+  // When editing cell changes, ensure the corresponding input receives focus
+  useEffect(() => {
+    if (!editingCell) return;
+    const selector = `input[data-cell="${editingCell.row}-${editingCell.col}"]`;
+    const el = document.querySelector<HTMLInputElement>(selector);
+    if (el) {
+      // Delay slightly to ensure element is mounted
+      requestAnimationFrame(() => el.focus());
+    }
+  }, [editingCell]);
 
   const handleCellInputChange = (value: string, row: number, col: number) => {
     setCursorPosition({ row, col });
@@ -323,14 +357,25 @@ export default function RackDiagramPage() {
         : "Đã thêm thiết bị thành công";
       toast.success(successMessage);
 
-      const nextPos = calculateNextPosition(
+      // Determine next empty cell (left-to-right, top-to-bottom)
+      const occupied = new Set(Array.from(cells.keys()));
+      occupied.add(key); // newly filled cell
+      const nextPos = findNextEmptyLinear(
         editingCell.row,
         editingCell.col,
         rack.rows,
         rack.cols,
+        occupied,
       );
+
       setCursorPosition(nextPos);
-      setEditingCell(null);
+      // Prepare focus on next empty cell; dropdown opens on focus/keydown
+      setEditingCell({
+        row: nextPos.row,
+        col: nextPos.col,
+        value: "",
+        isOpen: false,
+      });
     } catch (error) {
       console.error("Failed to add device:", error);
       toast.error("Không thể thêm thiết bị");
@@ -439,7 +484,8 @@ export default function RackDiagramPage() {
               {Array.from({ length: rack.rows }, (_, i) => (
                 <div
                   key={`y-${i}`}
-                  className="flex h-[80px] items-center justify-center rounded bg-gray-200 px-3 font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                  className="flex items-center justify-center rounded bg-gray-200 px-3 font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                  style={{ height: `${CELL_SIZE}px` }}
                 >
                   {rowToLetter(i + 1)}
                 </div>
@@ -467,10 +513,10 @@ export default function RackDiagramPage() {
 
               {/* Rack cells */}
               <div
-                className="grid gap-2 rounded-lg bg-gray-50 p-2 dark:bg-gray-900"
+                className="grid gap-2 rounded-lg bg-gray-50 dark:bg-gray-900"
                 style={{
-                  gridTemplateColumns: `repeat(${rack.cols}, minmax(120px, 1fr))`,
-                  gridTemplateRows: `repeat(${rack.rows}, minmax(80px, 1fr))`,
+                  gridTemplateColumns: `repeat(${rack.cols}, ${CELL_SIZE}px)`,
+                  gridTemplateRows: `repeat(${rack.rows}, ${CELL_SIZE}px)`,
                 }}
               >
                 {Array.from({ length: rack.rows }, (_, rowIndex) =>
@@ -492,13 +538,14 @@ export default function RackDiagramPage() {
                     return (
                       <div
                         key={`${rowIndex}-${colIndex}`}
-                        className={`editing-cell group relative flex min-h-[80px] flex-col items-center justify-center rounded-lg border-2 p-3 text-sm transition-all ${
+                        className={`editing-cell group relative flex flex-col items-center justify-center rounded-lg border-2 p-3 text-sm transition-all ${
                           isCursor && !isEditing
                             ? "border-blue-500 bg-blue-100 dark:bg-blue-900"
                             : isOccupied
                               ? "border-green-500 bg-green-100 text-green-900 dark:bg-green-900 dark:text-green-100"
                               : "border-gray-300 bg-white hover:border-gray-400 dark:border-gray-600 dark:bg-gray-800"
                         }`}
+                        style={{ height: `${CELL_SIZE}px` }}
                       >
                         {/* Delete button - only show when cell has device */}
                         {cellData && !isEditing && (
@@ -531,7 +578,8 @@ export default function RackDiagramPage() {
                                 editingCell?.col === col
                               }
                               type="text"
-                              value={editingCell?.value || ""}
+                              data-cell={`${row}-${col}`}
+                              value={isEditing ? editingCell?.value || "" : ""}
                               onChange={(e) =>
                                 handleCellInputChange(e.target.value, row, col)
                               }
