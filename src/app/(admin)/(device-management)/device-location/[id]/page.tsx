@@ -84,15 +84,19 @@ export default function RackDiagramPage() {
       if (!rackId) return null;
 
       try {
+        console.log("=== Fetching rack devices ===");
+        console.log("RackId:", rackId);
+
         // First get all device locations for this rack
         const locationsResponse = await api.get<
           IPaginatedResponse<IDeviceLocation>
         >(`/device-locations`, {
           params: { rackId, pageSize: 1000 },
         });
+
+        console.log("Full locations response:", locationsResponse);
         const locations = locationsResponse.data || [];
 
-        console.log("=== Fetching rack devices ===");
         console.log("Locations found:", locations.length);
         console.log("Locations:", locations);
 
@@ -154,36 +158,20 @@ export default function RackDiagramPage() {
 
   // Initialize cells from existing rack devices
   useEffect(() => {
-    console.log("=== useEffect triggered ===");
-    console.log("rackDevicesData:", rackDevicesData);
-
     if (!rackDevicesData?.devices) {
-      console.log("No devices data");
       return;
     }
-
-    console.log("Total devices:", rackDevicesData.devices.length);
 
     const newCells = new Map<string, CellData>();
 
     rackDevicesData.devices.forEach((device) => {
-      console.log("Processing device:", {
-        id: device.id,
-        name: device.deviceName,
-        hasLocation: !!device.deviceLocation,
-        location: device.deviceLocation,
-      });
-
       if (device.deviceLocation) {
         const location = device.deviceLocation;
         const row = parseInt(location.xPosition || "0");
         const col = parseInt(location.yPosition || "0");
 
-        console.log(`Parsed position: [${row},${col}]`);
-
         if (row > 0 && col > 0) {
           const key = `${row}-${col}`;
-          console.log(`Adding to cell ${key}:`, device.deviceName);
           newCells.set(key, {
             row,
             col,
@@ -191,22 +179,26 @@ export default function RackDiagramPage() {
             deviceName: device.deviceName,
             serial: device.serial,
           });
-        } else {
-          console.warn(
-            `Invalid position for device ${device.deviceName}: [${row},${col}]`,
-          );
         }
-      } else {
-        console.warn(`Device ${device.id} has no location`);
       }
     });
 
-    console.log("Total cells to set:", newCells.size);
-    console.log("Cells map:", Array.from(newCells.entries()));
     setCells(newCells);
   }, [rackDevicesData]);
 
   const getCellKey = (row: number, col: number) => `${row}-${col}`;
+
+  // Convert row number to letter (1 → A, 2 → B, ..., 27 → AA)
+  const rowToLetter = (row: number): string => {
+    let result = "";
+    let num = row;
+    while (num > 0) {
+      const remainder = (num - 1) % 26;
+      result = String.fromCharCode(65 + remainder) + result;
+      num = Math.floor((num - 1) / 26);
+    }
+    return result;
+  };
 
   const calculateNextPosition = (
     currentRow: number,
@@ -298,18 +290,29 @@ export default function RackDiagramPage() {
 
     setLoadingDevices(true);
     try {
+      console.log("=== handleSelectDevice ===");
+      console.log("Selected device:", device.deviceName);
+      console.log("Position:", { row: editingCell.row, col: editingCell.col });
+
       // Check if current position has an existing device
       const key = getCellKey(editingCell.row, editingCell.col);
       const cellData = cells.get(key);
 
       // If position has existing device, remove it first
       if (cellData && cellData.deviceId) {
+        console.log("Removing existing device:", cellData.deviceId);
         await api.put(`/devices/${cellData.deviceId}`, {
           deviceLocationId: null,
         });
       }
 
       // Check if location exists
+      console.log("Checking existing locations with params:", {
+        rackId,
+        xPosition: editingCell.row,
+        yPosition: editingCell.col,
+      });
+
       const existingLocations = await api.get<
         IPaginatedResponse<IDeviceLocation>
       >(`/device-locations`, {
@@ -321,11 +324,21 @@ export default function RackDiagramPage() {
         },
       });
 
+      console.log("Existing locations response:", existingLocations);
+
       let locationId: string;
 
       if (existingLocations.data && existingLocations.data.length > 0) {
         locationId = existingLocations.data[0].id;
+        console.log("Using existing location:", locationId);
       } else {
+        console.log("Creating new location with data:", {
+          rackId: rackId,
+          xPosition: editingCell.row.toString(),
+          yPosition: editingCell.col.toString(),
+          status: 1,
+        });
+
         const newLocation = await api.post<IResponse<IDeviceLocation>>(
           "/device-locations",
           {
@@ -335,22 +348,30 @@ export default function RackDiagramPage() {
             status: 1,
           },
         );
+
+        console.log("New location created:", newLocation);
         locationId = newLocation.data.id;
       }
 
       // Update new device with location
+      console.log("Updating device", device.id, "with locationId:", locationId);
       await api.put(`/devices/${device.id}`, {
         deviceLocationId: locationId,
       });
 
-      // Invalidate and refetch queries
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["devices"] }),
-        queryClient.invalidateQueries({ queryKey: ["device-locations"] }),
-      ]);
+      console.log("Device updated successfully");
 
-      // Wait for refetch to complete
-      await refetchRackDevices();
+      // Invalidate ALL related queries
+      console.log("Invalidating all caches...");
+      queryClient.clear(); // Clear all caches
+
+      // Small delay to ensure backend has processed
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Refetch rack devices
+      console.log("Refetching rack devices...");
+      const refetchResult = await refetchRackDevices();
+      console.log("Refetch completed, result:", refetchResult);
 
       const successMessage = cellData
         ? "Đã thay thế thiết bị thành công"
@@ -448,159 +469,197 @@ export default function RackDiagramPage() {
       <div className="space-y-4">
         {/* Rack Grid */}
         <div className="overflow-x-auto">
-          <div
-            className="inline-grid gap-2 rounded-lg bg-gray-50 p-4 dark:bg-gray-900"
-            style={{
-              gridTemplateColumns: `repeat(${rack.cols}, minmax(120px, 1fr))`,
-            }}
-          >
-            {Array.from({ length: rack.rows }, (_, rowIndex) =>
-              Array.from({ length: rack.cols }, (_, colIndex) => {
-                const row = rowIndex + 1;
-                const col = colIndex + 1;
-                const key = getCellKey(row, col);
-                const cellData = cells.get(key);
-                const isOccupied = !!cellData;
-                const isCursor =
-                  cursorPosition.row === row && cursorPosition.col === col;
-                const isEditing =
-                  editingCell?.row === row && editingCell?.col === col;
+          <div className="inline-flex gap-4">
+            {/* Y-axis labels (A, B, C...) */}
+            <div className="flex flex-col gap-2 pt-10">
+              {Array.from({ length: rack.rows }, (_, i) => (
+                <div
+                  key={`y-${i}`}
+                  className="flex h-[80px] items-center justify-center rounded bg-gray-200 px-3 font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                >
+                  {rowToLetter(i + 1)}
+                </div>
+              ))}
+            </div>
 
-                return (
+            {/* Grid container */}
+            <div className="flex flex-col gap-2">
+              {/* X-axis labels (1, 2, 3...) */}
+              <div
+                className="grid gap-2"
+                style={{
+                  gridTemplateColumns: `repeat(${rack.cols}, minmax(120px, 1fr))`,
+                }}
+              >
+                {Array.from({ length: rack.cols }, (_, i) => (
                   <div
-                    key={`${rowIndex}-${colIndex}`}
-                    className={`relative flex min-h-[80px] flex-col items-center justify-center rounded-lg border-2 p-3 text-sm transition-all ${
-                      isCursor && !isEditing
-                        ? "border-blue-500 bg-blue-100 dark:bg-blue-900"
-                        : isOccupied
-                          ? "border-green-500 bg-green-100 text-green-900 dark:bg-green-900 dark:text-green-100"
-                          : "border-gray-300 bg-white hover:border-gray-400 dark:border-gray-600 dark:bg-gray-800"
-                    }`}
+                    key={`x-${i}`}
+                    className="flex h-8 items-center justify-center rounded bg-gray-200 font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-300"
                   >
-                    <div className="mb-1 text-xs text-gray-500">
-                      [{row},{col}]
-                    </div>
-                    {isEditing ? (
-                      <Popover
-                        open={editingCell.isOpen}
-                        onOpenChange={(open) => {
-                          if (!open) {
-                            setEditingCell(null);
-                          }
-                        }}
-                      >
-                        <PopoverTrigger asChild>
-                          <div className="h-full w-full">
-                            <input
-                              autoFocus
-                              type="text"
-                              value={editingCell.value}
-                              onChange={(e) =>
-                                handleCellInputChange(e.target.value)
-                              }
-                              onKeyDown={handleCellInputKeyPress}
-                              className="h-full w-full bg-transparent text-center text-xs font-semibold outline-none"
-                              placeholder="Tìm thiết bị..."
-                            />
-                          </div>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-80 p-0" align="start">
-                          <Command>
-                            <CommandInput
-                              placeholder="Tìm kiếm thiết bị..."
-                              value={editingCell.value}
-                              onValueChange={handleCellInputChange}
-                            />
-                            <CommandList>
-                              <CommandEmpty>
-                                Không tìm thấy thiết bị.
-                              </CommandEmpty>
-                              {cellData && (
-                                <CommandGroup heading="Thao tác">
-                                  <CommandItem
-                                    onSelect={handleRemoveDevice}
-                                    className="cursor-pointer text-red-600 dark:text-red-400"
-                                  >
-                                    <span className="font-medium">
-                                      🗑️ Xóa thiết bị khỏi vị trí này
-                                    </span>
-                                  </CommandItem>
-                                </CommandGroup>
-                              )}
-                              <CommandGroup
-                                heading={
-                                  cellData
-                                    ? "Thay thế bằng thiết bị khác"
-                                    : "Thiết bị chưa gán"
-                                }
-                              >
-                                {getFilteredDevices().map((device) => (
-                                  <CommandItem
-                                    key={device.id}
-                                    value={device.deviceName}
-                                    onSelect={() => handleSelectDevice(device)}
-                                    className="cursor-pointer"
-                                  >
-                                    <Check
-                                      className={`mr-2 h-4 w-4 ${
-                                        editingCell.value === device.deviceName
-                                          ? "opacity-100"
-                                          : "opacity-0"
-                                      }`}
-                                    />
-                                    <div className="flex flex-col">
-                                      <span className="font-medium">
-                                        {device.deviceName}
-                                      </span>
-                                      {device.serial && (
-                                        <span className="text-muted-foreground text-xs">
-                                          Serial: {device.serial}
-                                        </span>
-                                      )}
-                                      {device.deviceType && (
-                                        <span className="text-muted-foreground text-xs">
-                                          Loại:{" "}
-                                          {device.deviceType.deviceTypeName}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    ) : (
-                      <button
-                        onClick={() => handleGridClick(row, col)}
-                        className="h-full w-full cursor-pointer"
-                        title={
-                          cellData
-                            ? `${cellData.deviceName}${cellData.serial ? ` - ${cellData.serial}` : ""}`
-                            : `Click để nhập thiết bị`
-                        }
-                      >
-                        {cellData ? (
-                          <div className="text-center">
-                            <div className="font-medium">
-                              {cellData.deviceName}
-                            </div>
-                            {cellData.serial && (
-                              <div className="mt-1 text-xs">
-                                {cellData.serial}
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="text-gray-400">Trống</div>
-                        )}
-                      </button>
-                    )}
+                    {i + 1}
                   </div>
-                );
-              }),
-            )}
+                ))}
+              </div>
+
+              {/* Rack cells */}
+              <div
+                className="m-0 grid gap-2 rounded-lg bg-gray-50 p-0 dark:bg-gray-900"
+                style={{
+                  gridTemplateColumns: `repeat(${rack.cols}, minmax(120px, 1fr))`,
+                }}
+              >
+                {Array.from({ length: rack.rows }, (_, rowIndex) =>
+                  Array.from({ length: rack.cols }, (_, colIndex) => {
+                    const row = rowIndex + 1;
+                    const col = colIndex + 1;
+                    const key = getCellKey(row, col);
+                    const cellData = cells.get(key);
+                    const isOccupied = !!cellData;
+                    const isCursor =
+                      cursorPosition.row === row && cursorPosition.col === col;
+                    const isEditing =
+                      editingCell?.row === row && editingCell?.col === col;
+
+                    return (
+                      <div
+                        key={`${rowIndex}-${colIndex}`}
+                        className={`relative flex min-h-[80px] flex-col items-center justify-center rounded-lg border-2 p-3 text-sm transition-all ${
+                          isCursor && !isEditing
+                            ? "border-blue-500 bg-blue-100 dark:bg-blue-900"
+                            : isOccupied
+                              ? "border-green-500 bg-green-100 text-green-900 dark:bg-green-900 dark:text-green-100"
+                              : "border-gray-300 bg-white hover:border-gray-400 dark:border-gray-600 dark:bg-gray-800"
+                        }`}
+                      >
+                        <div className="mb-1 text-xs text-gray-500">
+                          [{row},{col}]
+                        </div>
+                        {isEditing ? (
+                          <Popover
+                            open={editingCell.isOpen}
+                            onOpenChange={(open) => {
+                              if (!open) {
+                                setEditingCell(null);
+                              }
+                            }}
+                          >
+                            <PopoverTrigger asChild>
+                              <div className="h-full w-full">
+                                <input
+                                  autoFocus
+                                  type="text"
+                                  value={editingCell.value}
+                                  onChange={(e) =>
+                                    handleCellInputChange(e.target.value)
+                                  }
+                                  onKeyDown={handleCellInputKeyPress}
+                                  className="h-full w-full bg-transparent text-center text-xs font-semibold outline-none"
+                                  placeholder="Tìm thiết bị..."
+                                />
+                              </div>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80 p-0" align="start">
+                              <Command>
+                                <CommandInput
+                                  placeholder="Tìm kiếm thiết bị..."
+                                  value={editingCell.value}
+                                  onValueChange={handleCellInputChange}
+                                />
+                                <CommandList>
+                                  <CommandEmpty>
+                                    Không tìm thấy thiết bị.
+                                  </CommandEmpty>
+                                  {cellData && (
+                                    <CommandGroup heading="Thao tác">
+                                      <CommandItem
+                                        onSelect={handleRemoveDevice}
+                                        className="cursor-pointer text-red-600 dark:text-red-400"
+                                      >
+                                        <span className="font-medium">
+                                          🗑️ Xóa thiết bị khỏi vị trí này
+                                        </span>
+                                      </CommandItem>
+                                    </CommandGroup>
+                                  )}
+                                  <CommandGroup
+                                    heading={
+                                      cellData
+                                        ? "Thay thế bằng thiết bị khác"
+                                        : "Thiết bị chưa gán"
+                                    }
+                                  >
+                                    {getFilteredDevices().map((device) => (
+                                      <CommandItem
+                                        key={device.id}
+                                        value={device.deviceName}
+                                        onSelect={() =>
+                                          handleSelectDevice(device)
+                                        }
+                                        className="cursor-pointer"
+                                      >
+                                        <Check
+                                          className={`mr-2 h-4 w-4 ${
+                                            editingCell.value ===
+                                            device.deviceName
+                                              ? "opacity-100"
+                                              : "opacity-0"
+                                          }`}
+                                        />
+                                        <div className="flex flex-col">
+                                          <span className="font-medium">
+                                            {device.deviceName}
+                                          </span>
+                                          {device.serial && (
+                                            <span className="text-muted-foreground text-xs">
+                                              Serial: {device.serial}
+                                            </span>
+                                          )}
+                                          {device.deviceType && (
+                                            <span className="text-muted-foreground text-xs">
+                                              Loại:{" "}
+                                              {device.deviceType.deviceTypeName}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                        ) : (
+                          <button
+                            onClick={() => handleGridClick(row, col)}
+                            className="h-full w-full cursor-pointer"
+                            title={
+                              cellData
+                                ? `${cellData.deviceName}${cellData.serial ? ` - ${cellData.serial}` : ""}`
+                                : `Click để nhập thiết bị`
+                            }
+                          >
+                            {cellData ? (
+                              <div className="text-center">
+                                <div className="font-medium">
+                                  {cellData.deviceName}
+                                </div>
+                                {cellData.serial && (
+                                  <div className="mt-1 text-xs">
+                                    {cellData.serial}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="text-gray-400">Trống</div>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  }),
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
