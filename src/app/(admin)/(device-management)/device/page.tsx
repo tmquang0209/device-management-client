@@ -178,7 +178,10 @@ const createColumns = (
       filterType: "select",
       options: [
         { label: "Hoạt Động", value: 1 },
-        { label: "Không Hoạt Động", value: 0 },
+        { label: "Đang Mượn", value: 2 },
+        { label: "Đang Bảo Hành", value: 3 },
+        { label: "Hỏng", value: 4 },
+        { label: "Đang Bảo Trì", value: 5 },
       ],
     },
     size: 150,

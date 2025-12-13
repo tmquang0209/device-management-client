@@ -475,14 +475,15 @@ export default function CreateLoanSlipPage() {
                   min={1}
                   max={100}
                   value={filter.quantity}
+                  placeholder="Nhập số luợng thiết bị"
                   onChange={(e) =>
                     handleUpdateDeviceTypeFilter(
                       filter.id,
                       "quantity",
-                      parseInt(e.target.value) || 1,
+                      parseInt(e.target.value),
                     )
                   }
-                  className="w-20 bg-gray-100 dark:bg-gray-700"
+                  className="w-36"
                 />
               </div>
 
