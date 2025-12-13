@@ -304,9 +304,14 @@ export default function RackDiagramPage() {
         deviceLocationId: null,
       });
 
+      // Invalidate all related queries to ensure fresh data
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["devices"] }),
         queryClient.invalidateQueries({ queryKey: ["device-locations"] }),
+        queryClient.invalidateQueries({
+          queryKey: ["devices", "rack", rackId],
+        }),
+        queryClient.invalidateQueries({ queryKey: ["devices", "unassigned"] }),
       ]);
 
       await refetchRackDevices();
@@ -368,9 +373,15 @@ export default function RackDiagramPage() {
         deviceLocationId: locationId,
       });
 
-      queryClient.clear();
-
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      // Invalidate all related queries instead of clearing entire cache
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["devices"] }),
+        queryClient.invalidateQueries({ queryKey: ["device-locations"] }),
+        queryClient.invalidateQueries({
+          queryKey: ["devices", "rack", rackId],
+        }),
+        queryClient.invalidateQueries({ queryKey: ["devices", "unassigned"] }),
+      ]);
 
       await refetchRackDevices();
 
