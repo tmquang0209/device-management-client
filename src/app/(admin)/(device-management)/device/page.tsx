@@ -14,6 +14,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  DeviceStatusLabel,
+  EDeviceStatus,
+} from "@/shared/constants/admin/device";
 import { api } from "@/shared/data/api";
 import {
   IDevice,
@@ -140,12 +144,34 @@ const createColumns = (
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Trạng Thái" />
     ),
-    cell: ({ row }) =>
-      row.getValue("status") ? (
-        <Badge variant="success">Hoạt Động</Badge>
-      ) : (
-        <Badge variant="destructive">Không Hoạt Động</Badge>
-      ),
+    cell: ({ row }) => {
+      const status = row.getValue("status");
+      // "default" | "success" | "secondary" | "destructive" | "outline" | "warning"
+      const badgeColor = {
+        [EDeviceStatus.AVAILABLE]: "success",
+        [EDeviceStatus.ON_LOAN]: "default",
+        [EDeviceStatus.UNDER_WARRANTY]: "warning",
+        [EDeviceStatus.BROKEN]: "destructive",
+        [EDeviceStatus.MAINTENANCE]: "secondary",
+      };
+      const color = badgeColor[status as EDeviceStatus] || "gray";
+
+      return (
+        <Badge
+          variant={
+            color as
+              | "default"
+              | "success"
+              | "secondary"
+              | "destructive"
+              | "outline"
+              | "warning"
+          }
+        >
+          {DeviceStatusLabel[status as EDeviceStatus] || "Không Xác Định"}
+        </Badge>
+      );
+    },
     enableColumnFilter: true,
     meta: {
       label: "Trạng Thái",
@@ -155,7 +181,7 @@ const createColumns = (
         { label: "Không Hoạt Động", value: 0 },
       ],
     },
-    size: 100,
+    size: 150,
   },
   {
     accessorKey: "createdAt",
