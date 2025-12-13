@@ -78,14 +78,14 @@ export interface IMaintenanceSlipUpdate {
   status?: EMaintenanceSlipStatus;
 }
 
-export interface IReturnDeviceItem {
+export interface IReturnDeviceMaintenanceItem {
   deviceId: string;
   status: EMaintenanceSlipDetailStatus; // 2: RETURNED, 3: BROKEN
   note?: string;
 }
 
 export interface IReturnMaintenanceSlip {
-  items: IReturnDeviceItem[];
+  items: IReturnDeviceMaintenanceItem[];
 }
 
 export interface IMaintenanceSlipListRequest extends IPaginationRequest {
