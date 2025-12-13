@@ -209,9 +209,9 @@ export function DataTable<TData, TValue>({
     setReloadToggle(true);
     try {
       await refetch();
-      toast.success("Data refreshed successfully");
+      toast.success("Làm mới dữ liệu thành công");
     } catch (error) {
-      toast.error("Failed to refresh data");
+      toast.error("Làm mới dữ liệu thất bại");
       console.error("Refetch error:", error);
     } finally {
       setReloadToggle(false);

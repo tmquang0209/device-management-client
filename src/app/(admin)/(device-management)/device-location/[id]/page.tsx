@@ -19,6 +19,13 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { api } from "@/shared/data/api";
 import {
   IDevice,
@@ -65,6 +72,8 @@ export default function RackDiagramPage() {
     row: number;
     col: number;
   } | null>(null);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const queryClient = useQueryClient();
 
   // Fetch rack details
@@ -89,6 +98,19 @@ export default function RackDiagramPage() {
       return response.data;
     },
   });
+
+  // Fetch selected device details
+  const { data: selectedDevice, isLoading: deviceDetailsLoading } =
+    useQuery<IDevice>({
+      queryKey: ["devices", selectedDeviceId],
+      queryFn: async () => {
+        const response = await api.get<IResponse<IDevice>>(
+          `/devices/${selectedDeviceId}`,
+        );
+        return response.data;
+      },
+      enabled: !!selectedDeviceId,
+    });
 
   // Fetch devices currently on this rack
   const { data: rackDevicesData, refetch: refetchRackDevices } = useQuery({
@@ -419,8 +441,8 @@ export default function RackDiagramPage() {
     const searchTerm = editingCell.value.toLowerCase();
     return unassignedDevices.filter(
       (device) =>
-        device.deviceName.toLowerCase().includes(searchTerm) ||
-        device.serial?.toLowerCase().includes(searchTerm),
+        device.serial?.toLowerCase().includes(searchTerm) ||
+        device.deviceName.toLowerCase().includes(searchTerm),
     );
   };
 
@@ -470,7 +492,8 @@ export default function RackDiagramPage() {
             (Esc để hủy)
           </p>
           <p className="text-muted-foreground ml-10 text-sm">
-            Vị trí hiện tại: [{cursorPosition.row},{cursorPosition.col}]
+            Vị trí hiện tại: [{cursorPosition.col},
+            {rowToLetter(cursorPosition.row)}]
           </p>
         </div>
       </div>
@@ -586,7 +609,7 @@ export default function RackDiagramPage() {
                               }
                               onFocus={() => openCellDropdown(row, col)}
                               className="h-full w-full bg-transparent text-center text-xs font-semibold outline-none placeholder:text-gray-400"
-                              placeholder="Nhập tên thiết bị..."
+                              placeholder="Nhập mã/serial thiết bị..."
                             />
                             {/* Dropdown list */}
                             {editingCell?.isOpen &&
@@ -652,7 +675,15 @@ export default function RackDiagramPage() {
                               )}
                           </div>
                         ) : (
-                          <div className="text-center">
+                          <div
+                            className="flex h-full w-full cursor-pointer flex-col items-center justify-center text-center"
+                            onClick={() => {
+                              if (cellData.deviceId) {
+                                setSelectedDeviceId(cellData.deviceId);
+                                setDrawerOpen(true);
+                              }
+                            }}
+                          >
                             <div className="font-medium">
                               {cellData.deviceName}
                             </div>
@@ -680,11 +711,11 @@ export default function RackDiagramPage() {
           </div>
           <div className="flex items-center gap-2">
             <div className="h-6 w-6 rounded border-2 border-green-500 bg-green-100 dark:bg-green-900" />
-            <span>Đã có thiết bị</span>
+            <span>Đã có thiết bị: {cells.size}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="h-6 w-6 rounded border-2 border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800" />
-            <span>Trống</span>
+            <span>Trống: {rack.rows * rack.cols - cells.size}</span>
           </div>
         </div>
 
@@ -701,7 +732,7 @@ export default function RackDiagramPage() {
                   className="rounded border border-green-300 bg-green-50 p-2 text-xs dark:border-green-700 dark:bg-green-900"
                 >
                   <div className="font-semibold text-green-900 dark:text-green-100">
-                    [{cell.row},{cell.col}]
+                    [{cell.col},{rowToLetter(cell.row)}]
                   </div>
                   <div className="truncate text-green-700 dark:text-green-300">
                     {cell.deviceName}
@@ -731,7 +762,8 @@ export default function RackDiagramPage() {
               <span className="font-semibold text-red-600">
                 {deleteConfirm?.deviceName}
               </span>{" "}
-              khỏi vị trí [{deleteConfirm?.row},{deleteConfirm?.col}]?
+              khỏi vị trí [{deleteConfirm?.col},
+              {rowToLetter(deleteConfirm?.row || 1)}]?
               <br />
               Thiết bị sẽ trở về trạng thái chưa gán vị trí.
             </AlertDialogDescription>
@@ -747,6 +779,222 @@ export default function RackDiagramPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Device Details Drawer */}
+      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
+        <SheetContent className="w-[400px] overflow-y-auto p-4 sm:w-[540px]">
+          <SheetHeader>
+            <SheetTitle>Chi Tiết Thiết Bị</SheetTitle>
+            <SheetDescription>
+              Thông tin chi tiết về thiết bị được chọn
+            </SheetDescription>
+          </SheetHeader>
+
+          {deviceDetailsLoading ? (
+            <div className="flex h-64 items-center justify-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" />
+            </div>
+          ) : selectedDevice ? (
+            <div className="mt-6 space-y-6">
+              {/* Basic Information */}
+              <div className="space-y-4">
+                <h3 className="border-b pb-2 text-lg font-semibold">
+                  Thông Tin Cơ Bản
+                </h3>
+                <div className="grid gap-3">
+                  <div className="grid grid-cols-3 gap-2">
+                    <span className="text-sm font-medium text-gray-500">
+                      Tên thiết bị:
+                    </span>
+                    <span className="col-span-2 text-sm">
+                      {selectedDevice.deviceName}
+                    </span>
+                  </div>
+                  {selectedDevice.serial && (
+                    <div className="grid grid-cols-3 gap-2">
+                      <span className="text-sm font-medium text-gray-500">
+                        Serial:
+                      </span>
+                      <span className="col-span-2 font-mono text-sm">
+                        {selectedDevice.serial}
+                      </span>
+                    </div>
+                  )}
+                  {selectedDevice.model && (
+                    <div className="grid grid-cols-3 gap-2">
+                      <span className="text-sm font-medium text-gray-500">
+                        Model:
+                      </span>
+                      <span className="col-span-2 text-sm">
+                        {selectedDevice.model}
+                      </span>
+                    </div>
+                  )}
+                  {selectedDevice.deviceType && (
+                    <div className="grid grid-cols-3 gap-2">
+                      <span className="text-sm font-medium text-gray-500">
+                        Loại thiết bị:
+                      </span>
+                      <span className="col-span-2 text-sm">
+                        {selectedDevice.deviceType.deviceTypeName}
+                      </span>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-3 gap-2">
+                    <span className="text-sm font-medium text-gray-500">
+                      Trạng thái:
+                    </span>
+                    <span className="col-span-2">
+                      {selectedDevice.status === 1 ? (
+                        <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                          Hoạt động
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
+                          Không hoạt động
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Location Information */}
+              {selectedDevice.deviceLocation && (
+                <div className="space-y-4">
+                  <h3 className="border-b pb-2 text-lg font-semibold">
+                    Vị Trí
+                  </h3>
+                  <div className="grid gap-3">
+                    {selectedDevice.deviceLocation.rack && (
+                      <div className="grid grid-cols-3 gap-2">
+                        <span className="text-sm font-medium text-gray-500">
+                          Kệ:
+                        </span>
+                        <span className="col-span-2 text-sm">
+                          {selectedDevice.deviceLocation.rack.code}
+                        </span>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-3 gap-2">
+                      <span className="text-sm font-medium text-gray-500">
+                        Tọa độ:
+                      </span>
+                      <span className="col-span-2 text-sm">
+                        [{selectedDevice.deviceLocation.yPosition},{" "}
+                        {rowToLetter(
+                          parseInt(
+                            selectedDevice.deviceLocation.xPosition || "1",
+                          ),
+                        )}
+                        ]
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Purchase & Warranty Information */}
+              {(selectedDevice.purchaseDate ||
+                selectedDevice.warrantyExpirationDate ||
+                selectedDevice.supplier) && (
+                <div className="space-y-4">
+                  <h3 className="border-b pb-2 text-lg font-semibold">
+                    Thông Tin Mua Hàng & Bảo Hành
+                  </h3>
+                  <div className="grid gap-3">
+                    {selectedDevice.supplier && (
+                      <div className="grid grid-cols-3 gap-2">
+                        <span className="text-sm font-medium text-gray-500">
+                          Nhà cung cấp:
+                        </span>
+                        <span className="col-span-2 text-sm">
+                          {selectedDevice.supplier}
+                        </span>
+                      </div>
+                    )}
+                    {selectedDevice.purchaseDate && (
+                      <div className="grid grid-cols-3 gap-2">
+                        <span className="text-sm font-medium text-gray-500">
+                          Ngày mua:
+                        </span>
+                        <span className="col-span-2 text-sm">
+                          {new Date(
+                            selectedDevice.purchaseDate,
+                          ).toLocaleDateString("vi-VN")}
+                        </span>
+                      </div>
+                    )}
+                    {selectedDevice.warrantyExpirationDate && (
+                      <div className="grid grid-cols-3 gap-2">
+                        <span className="text-sm font-medium text-gray-500">
+                          Hết hạn bảo hành:
+                        </span>
+                        <span className="col-span-2 text-sm">
+                          {new Date(
+                            selectedDevice.warrantyExpirationDate,
+                          ).toLocaleDateString("vi-VN")}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Notes */}
+              {selectedDevice.notes && (
+                <div className="space-y-4">
+                  <h3 className="border-b pb-2 text-lg font-semibold">
+                    Ghi Chú
+                  </h3>
+                  <p className="text-sm whitespace-pre-wrap text-gray-700 dark:text-gray-300">
+                    {selectedDevice.notes}
+                  </p>
+                </div>
+              )}
+
+              {/* Timestamps */}
+              <div className="space-y-4">
+                <h3 className="border-b pb-2 text-lg font-semibold">
+                  Thông Tin Hệ Thống
+                </h3>
+                <div className="grid gap-3">
+                  {selectedDevice.createdAt && (
+                    <div className="grid grid-cols-3 gap-2">
+                      <span className="text-sm font-medium text-gray-500">
+                        Ngày tạo:
+                      </span>
+                      <span className="col-span-2 text-sm">
+                        {new Date(selectedDevice.createdAt).toLocaleString(
+                          "vi-VN",
+                        )}
+                      </span>
+                    </div>
+                  )}
+                  {selectedDevice.updatedAt && (
+                    <div className="grid grid-cols-3 gap-2">
+                      <span className="text-sm font-medium text-gray-500">
+                        Cập nhật lần cuối:
+                      </span>
+                      <span className="col-span-2 text-sm">
+                        {new Date(selectedDevice.updatedAt).toLocaleString(
+                          "vi-VN",
+                        )}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex h-64 items-center justify-center">
+              <p className="text-sm text-gray-500">
+                Không tìm thấy thông tin thiết bị
+              </p>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </Card>
   );
 }

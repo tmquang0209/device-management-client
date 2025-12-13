@@ -37,7 +37,7 @@ export interface IDevice extends IDeviceBase {
   id: string;
   deviceType?: IDeviceType;
   deviceLocation?: IDeviceLocationInfo & { rack?: IRack };
-  supplier?: ISupplier;
+  supplier?: string;
   createdAt: Date;
   updatedAt: Date;
 }
