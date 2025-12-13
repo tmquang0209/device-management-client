@@ -92,18 +92,24 @@ export default function RackDiagramPage() {
         });
         const locations = locationsResponse.data || [];
 
+        console.log("=== Fetching rack devices ===");
+        console.log("Locations found:", locations.length);
+        console.log("Locations:", locations);
+
         if (locations.length === 0) {
           return { locations: [], devices: [] };
         }
 
         // Get all location IDs
         const locationIds = locations.map((loc) => loc.id);
+        console.log("Location IDs:", locationIds);
 
         // Fetch all devices for each location
         const devicePromises = locationIds.map(async (locId) => {
           const res = await api.get<IPaginatedResponse<IDevice>>(`/devices`, {
             params: { deviceLocationId: locId, pageSize: 100 },
           });
+          console.log(`API response for location ${locId}:`, res);
           return {
             locationId: locId,
             devices: res.data || [],
@@ -111,21 +117,32 @@ export default function RackDiagramPage() {
         });
 
         const deviceResults = await Promise.all(devicePromises);
+        console.log("Device results:", deviceResults);
+
         const devices: IDevice[] = [];
 
         // Combine all devices and attach their location info
         deviceResults.forEach(({ locationId, devices: devicesForLocation }) => {
+          console.log(
+            `Processing location ${locationId}, devices:`,
+            devicesForLocation.length,
+          );
           const location = locations.find((loc) => loc.id === locationId);
           if (location && devicesForLocation.length > 0) {
             devicesForLocation.forEach((device) => {
+              console.log(
+                `Adding device ${device.deviceName} with location:`,
+                location,
+              );
               devices.push({
                 ...device,
-                deviceLocation: location as any,
+                deviceLocation: location as IDevice["deviceLocation"],
               });
             });
           }
         });
 
+        console.log("Final devices array:", devices);
         return { locations, devices };
       } catch (error) {
         console.error("Failed to load devices:", error);
@@ -137,20 +154,36 @@ export default function RackDiagramPage() {
 
   // Initialize cells from existing rack devices
   useEffect(() => {
+    console.log("=== useEffect triggered ===");
+    console.log("rackDevicesData:", rackDevicesData);
+
     if (!rackDevicesData?.devices) {
+      console.log("No devices data");
       return;
     }
+
+    console.log("Total devices:", rackDevicesData.devices.length);
 
     const newCells = new Map<string, CellData>();
 
     rackDevicesData.devices.forEach((device) => {
+      console.log("Processing device:", {
+        id: device.id,
+        name: device.deviceName,
+        hasLocation: !!device.deviceLocation,
+        location: device.deviceLocation,
+      });
+
       if (device.deviceLocation) {
         const location = device.deviceLocation;
         const row = parseInt(location.xPosition || "0");
         const col = parseInt(location.yPosition || "0");
 
+        console.log(`Parsed position: [${row},${col}]`);
+
         if (row > 0 && col > 0) {
           const key = `${row}-${col}`;
+          console.log(`Adding to cell ${key}:`, device.deviceName);
           newCells.set(key, {
             row,
             col,
@@ -158,10 +191,18 @@ export default function RackDiagramPage() {
             deviceName: device.deviceName,
             serial: device.serial,
           });
+        } else {
+          console.warn(
+            `Invalid position for device ${device.deviceName}: [${row},${col}]`,
+          );
         }
+      } else {
+        console.warn(`Device ${device.id} has no location`);
       }
     });
 
+    console.log("Total cells to set:", newCells.size);
+    console.log("Cells map:", Array.from(newCells.entries()));
     setCells(newCells);
   }, [rackDevicesData]);
 
@@ -204,15 +245,9 @@ export default function RackDiagramPage() {
   };
 
   const handleGridClick = (row: number, col: number) => {
-    const key = getCellKey(row, col);
-    const isOccupied = cells.has(key);
-
-    if (!isOccupied) {
-      setCursorPosition({ row, col });
-      setEditingCell({ row, col, value: "", isOpen: true });
-    } else {
-      toast.error("Vị trí này đã có thiết bị");
-    }
+    // Cho phép click vào cả ô trống và ô đã có thiết bị
+    setCursorPosition({ row, col });
+    setEditingCell({ row, col, value: "", isOpen: true });
   };
 
   const handleCellInputChange = (value: string) => {
@@ -221,11 +256,59 @@ export default function RackDiagramPage() {
     }
   };
 
+  const handleRemoveDevice = async () => {
+    if (!editingCell) return;
+
+    const key = getCellKey(editingCell.row, editingCell.col);
+    const cellData = cells.get(key);
+
+    if (!cellData || !cellData.deviceId) {
+      toast.error("Không tìm thấy thiết bị để xóa");
+      return;
+    }
+
+    setLoadingDevices(true);
+    try {
+      // Remove device from location by setting deviceLocationId to null
+      await api.put(`/devices/${cellData.deviceId}`, {
+        deviceLocationId: null,
+      });
+
+      // Invalidate and refetch queries
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["devices"] }),
+        queryClient.invalidateQueries({ queryKey: ["device-locations"] }),
+      ]);
+
+      // Wait for refetch to complete
+      await refetchRackDevices();
+
+      toast.success("Đã xóa thiết bị khỏi vị trí");
+      setEditingCell(null);
+    } catch (error) {
+      console.error("Failed to remove device:", error);
+      toast.error("Không thể xóa thiết bị");
+    } finally {
+      setLoadingDevices(false);
+    }
+  };
+
   const handleSelectDevice = async (device: IDevice) => {
     if (!editingCell || !rack) return;
 
     setLoadingDevices(true);
     try {
+      // Check if current position has an existing device
+      const key = getCellKey(editingCell.row, editingCell.col);
+      const cellData = cells.get(key);
+
+      // If position has existing device, remove it first
+      if (cellData && cellData.deviceId) {
+        await api.put(`/devices/${cellData.deviceId}`, {
+          deviceLocationId: null,
+        });
+      }
+
       // Check if location exists
       const existingLocations = await api.get<
         IPaginatedResponse<IDeviceLocation>
@@ -255,7 +338,7 @@ export default function RackDiagramPage() {
         locationId = newLocation.data.id;
       }
 
-      // Update device with location
+      // Update new device with location
       await api.put(`/devices/${device.id}`, {
         deviceLocationId: locationId,
       });
@@ -269,7 +352,10 @@ export default function RackDiagramPage() {
       // Wait for refetch to complete
       await refetchRackDevices();
 
-      toast.success("Đã thêm thiết bị thành công");
+      const successMessage = cellData
+        ? "Đã thay thế thiết bị thành công"
+        : "Đã thêm thiết bị thành công";
+      toast.success(successMessage);
 
       // Move to next position
       const nextPos = calculateNextPosition(
@@ -429,7 +515,25 @@ export default function RackDiagramPage() {
                               <CommandEmpty>
                                 Không tìm thấy thiết bị.
                               </CommandEmpty>
-                              <CommandGroup heading="Thiết bị chưa gán">
+                              {cellData && (
+                                <CommandGroup heading="Thao tác">
+                                  <CommandItem
+                                    onSelect={handleRemoveDevice}
+                                    className="cursor-pointer text-red-600 dark:text-red-400"
+                                  >
+                                    <span className="font-medium">
+                                      🗑️ Xóa thiết bị khỏi vị trí này
+                                    </span>
+                                  </CommandItem>
+                                </CommandGroup>
+                              )}
+                              <CommandGroup
+                                heading={
+                                  cellData
+                                    ? "Thay thế bằng thiết bị khác"
+                                    : "Thiết bị chưa gán"
+                                }
+                              >
                                 {getFilteredDevices().map((device) => (
                                   <CommandItem
                                     key={device.id}
