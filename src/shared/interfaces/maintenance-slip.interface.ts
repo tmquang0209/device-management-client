@@ -1,48 +1,94 @@
 import { IPaginationRequest } from "@/shared/interfaces";
+import { IPartner } from "./partner.interface";
 
-export interface IMaintenanceSlipInfo {
+/**
+ * Maintenance Slip Status Enum
+ * 1: SENDING - Đang gửi bảo hành
+ * 2: CLOSED - Đã đóng (đã nhận lại)
+ * 3: CANCELLED - Đã hủy
+ * 4: PARTIAL_RETURNED - Chưa hoàn tất nhận lại
+ */
+export enum EMaintenanceSlipStatus {
+  SENDING = 1,
+  CLOSED = 2,
+  CANCELLED = 3,
+  PARTIAL_RETURNED = 4,
+}
+
+/**
+ * Maintenance Slip Detail Status Enum
+ * 1: SENT - Thiết bị đã gửi, chưa nhận lại
+ * 2: RETURNED - Thiết bị đã nhận lại (hoạt động bình thường)
+ * 3: BROKEN - Thiết bị không thể sửa chữa
+ */
+export enum EMaintenanceSlipDetailStatus {
+  SENT = 1,
+  RETURNED = 2,
+  BROKEN = 3,
+}
+
+export interface IMaintenanceSlipDevice {
   id: string;
-  deviceId: string;
-  transferStatus?: string;
-  partnerId?: string;
-  reason?: string;
-  requestDate?: string | Date;
-  status: number;
-  createdAt: string | Date;
-  updatedAt: string | Date;
-  device?: {
+  deviceName: string;
+  serial?: string;
+  model?: string;
+  deviceType?: {
     id: string;
-    deviceName: string;
-    serial?: string;
-  };
-  partner?: {
-    id: string;
-    userId?: string;
-    partnerType?: string;
+    deviceTypeName: string;
   };
 }
 
-export interface IMaintenanceSlipCreate {
+export interface IMaintenanceSlipDetail {
+  id: string;
+  maintenanceSlipId: string;
   deviceId: string;
-  transferStatus?: string;
+  status: EMaintenanceSlipDetailStatus;
+  returnDate?: Date;
+  note?: string;
+  device?: IMaintenanceSlipDevice;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IMaintenanceSlipInfo {
+  id: string;
+  code: string;
+  partnerId?: string;
+  reason?: string;
+  requestDate?: string | Date;
+  status: EMaintenanceSlipStatus;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  details?: IMaintenanceSlipDetail[];
+  partner?: IPartner;
+}
+
+export interface IMaintenanceSlipCreate {
   partnerId?: string;
   reason?: string;
   requestDate?: Date | string;
+  deviceIds: string[];
 }
 
 export interface IMaintenanceSlipUpdate {
   id: string;
-  deviceId?: string;
-  transferStatus?: string;
   partnerId?: string;
   reason?: string;
   requestDate?: Date | string;
-  status?: number;
+  status?: EMaintenanceSlipStatus;
+}
+
+export interface IReturnDeviceItem {
+  deviceId: string;
+  status: EMaintenanceSlipDetailStatus; // 2: RETURNED, 3: BROKEN
+  note?: string;
+}
+
+export interface IReturnMaintenanceSlip {
+  items: IReturnDeviceItem[];
 }
 
 export interface IMaintenanceSlipListRequest extends IPaginationRequest {
-  deviceId?: string;
   partnerId?: string;
-  transferStatus?: string;
-  status?: number;
+  status?: EMaintenanceSlipStatus;
 }
