@@ -32,7 +32,7 @@ const createColumns = (): ColumnDef<IPartner>[] => [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Tên Người Dùng" />
     ),
-    cell: ({ row }) => row.original.user?.fullName || "N/A",
+    cell: ({ row }) => row.original.user?.name || "N/A",
     enableColumnFilter: true,
     meta: {
       label: "Tên Người Dùng",
