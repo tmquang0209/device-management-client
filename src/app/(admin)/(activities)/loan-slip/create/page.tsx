@@ -1,5 +1,6 @@
 "use client";
 
+import { AsyncSelect, AsyncSelectOption } from "@/components/ui/async-select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -20,13 +21,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -35,14 +29,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { api } from "@/shared/data/api";
-import {
-  IDevice,
-  IDeviceType,
-  IPaginatedResponse,
-  IPartner,
-  IResponse,
-} from "@/shared/interfaces";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { IDevice, IResponse } from "@/shared/interfaces";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Minus, MoreVertical, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -54,11 +42,13 @@ interface LoanSlipDevice {
   deviceCode: string;
   deviceName: string;
   deviceType: string;
+  deviceTypeId: string;
 }
 
 interface DeviceTypeFilter {
   id: string;
   deviceTypeId: string;
+  deviceTypeName: string;
   quantity: number;
 }
 
@@ -73,6 +63,10 @@ export default function CreateLoanSlipPage() {
     actualReturnDate: "",
     note: "",
   });
+  const [selectedBorrower, setSelectedBorrower] =
+    useState<AsyncSelectOption | null>(null);
+  const [selectedLoaner, setSelectedLoaner] =
+    useState<AsyncSelectOption | null>(null);
   const [devices, setDevices] = useState<LoanSlipDevice[]>([]);
   const [deviceTypeFilters, setDeviceTypeFilters] = useState<
     DeviceTypeFilter[]
@@ -86,40 +80,6 @@ export default function CreateLoanSlipPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  // Fetch partners
-  const { data: partners = [] } = useQuery({
-    queryKey: ["partners"],
-    queryFn: async (): Promise<IPartner[]> => {
-      const response = await api.get<IPaginatedResponse<IPartner>>("/partners");
-      console.log("🚀 ~ CreateLoanSlipPage ~ response:", response);
-      return response.data || [];
-    },
-    enabled: mounted,
-  });
-
-  // Fetch available devices
-  const { data: availableDevices = [] } = useQuery({
-    queryKey: ["devices-available"],
-    queryFn: async (): Promise<IDevice[]> => {
-      const response = await api.get<IResponse<IDevice[]>>("/devices", {
-        params: { status: 1 },
-      });
-      return response.data || [];
-    },
-    enabled: mounted,
-  });
-
-  // Fetch device types
-  const { data: deviceTypes = [] } = useQuery({
-    queryKey: ["device-types"],
-    queryFn: async (): Promise<IDeviceType[]> => {
-      const response =
-        await api.get<IPaginatedResponse<IDeviceType>>("/device-types");
-      return response.data || [];
-    },
-    enabled: mounted,
-  });
 
   // Mutation to fetch available devices for loan by type
   const fetchAvailableDevicesMutation = useMutation({
@@ -173,6 +133,7 @@ export default function CreateLoanSlipPage() {
               deviceCode: device.serial || device.id.slice(0, 8),
               deviceName: device.deviceName,
               deviceType: device.deviceType?.deviceTypeName || "N/A",
+              deviceTypeId: device.deviceType?.id || "",
             });
           }
         });
@@ -192,6 +153,7 @@ export default function CreateLoanSlipPage() {
       {
         id: `filter-${Date.now()}`,
         deviceTypeId: "",
+        deviceTypeName: "",
         quantity: 1,
       },
     ]);
@@ -205,12 +167,30 @@ export default function CreateLoanSlipPage() {
   // Update device type filter
   const handleUpdateDeviceTypeFilter = (
     id: string,
-    field: "deviceTypeId" | "quantity",
+    field: "deviceTypeId" | "quantity" | "deviceTypeName",
     value: string | number,
   ) => {
     setDeviceTypeFilters(
       deviceTypeFilters.map((f) =>
         f.id === id ? { ...f, [field]: value } : f,
+      ),
+    );
+  };
+
+  // Handle device type selection from AsyncSelect
+  const handleDeviceTypeChange = (
+    filterId: string,
+    option: AsyncSelectOption | null,
+  ) => {
+    setDeviceTypeFilters(
+      deviceTypeFilters.map((f) =>
+        f.id === filterId
+          ? {
+              ...f,
+              deviceTypeId: option ? String(option.value) : "",
+              deviceTypeName: option ? option.label : "",
+            }
+          : f,
       ),
     );
   };
@@ -222,18 +202,13 @@ export default function CreateLoanSlipPage() {
     setLoadingSwapCandidates(true);
 
     try {
-      // Find device type by device name
-      const deviceType = deviceTypes.find(
-        (dt) => dt.deviceTypeName === device.deviceType,
-      );
-
-      if (deviceType) {
+      if (device.deviceTypeId) {
         // Fetch many devices of same type for swap options
         const response = await api.get<IResponse<IDevice[]>>(
           "/devices/available-for-loan",
           {
             params: {
-              deviceTypeId: deviceType.id,
+              deviceTypeId: device.deviceTypeId,
               quantity: 100, // Get many devices for swap options
             },
           },
@@ -271,6 +246,7 @@ export default function CreateLoanSlipPage() {
               deviceCode: newDevice.serial || newDevice.id.slice(0, 8),
               deviceName: newDevice.deviceName,
               deviceType: newDevice.deviceType?.deviceTypeName || "N/A",
+              deviceTypeId: newDevice.deviceType?.id || "",
             }
           : d,
       ),
@@ -387,44 +363,36 @@ export default function CreateLoanSlipPage() {
 
             <div className="space-y-2">
               <Label htmlFor="borrowerId">Tên người mượn *</Label>
-              <Select
-                value={formData.borrowerId}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, borrowerId: value })
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Chọn người mượn" />
-                </SelectTrigger>
-                <SelectContent>
-                  {partners.map((partner) => (
-                    <SelectItem key={partner.id} value={partner.id}>
-                      {partner.user?.name || `Partner ${partner.id}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <AsyncSelect
+                endpoint="/partners"
+                transformKey={{ label: "user.name", value: "id" }}
+                placeholder="Chọn người mượn"
+                value={selectedBorrower}
+                onChange={(option) => {
+                  setSelectedBorrower(option);
+                  setFormData({
+                    ...formData,
+                    borrowerId: option ? String(option.value) : "",
+                  });
+                }}
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="loanerId">Người cho mượn *</Label>
-              <Select
-                value={formData.loanerId}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, loanerId: value })
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Chọn người cho mượn" />
-                </SelectTrigger>
-                <SelectContent>
-                  {partners.map((partner) => (
-                    <SelectItem key={partner.id} value={partner.id}>
-                      {partner.user?.name || `Partner ${partner.id}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <AsyncSelect
+                endpoint="/partners"
+                transformKey={{ label: "user.name", value: "id" }}
+                placeholder="Chọn người cho mượn"
+                value={selectedLoaner}
+                onChange={(option) => {
+                  setSelectedLoaner(option);
+                  setFormData({
+                    ...formData,
+                    loanerId: option ? String(option.value) : "",
+                  });
+                }}
+              />
             </div>
 
             <div className="space-y-2">
@@ -480,34 +448,32 @@ export default function CreateLoanSlipPage() {
           {/* Device type filters */}
           {deviceTypeFilters.map((filter) => (
             <div key={filter.id} className="flex items-center gap-4">
-              <Select
-                value={filter.deviceTypeId}
-                onValueChange={(value) =>
-                  handleUpdateDeviceTypeFilter(filter.id, "deviceTypeId", value)
-                }
-              >
-                <SelectTrigger className="w-[200px] bg-gray-100 dark:bg-gray-700">
-                  <SelectValue placeholder="Loại thiết bị" />
-                </SelectTrigger>
-                <SelectContent>
-                  {deviceTypes.map((type) => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {type.deviceTypeName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="w-[250px]">
+                <AsyncSelect
+                  endpoint="/device-types"
+                  transformKey={{ label: "deviceTypeName", value: "id" }}
+                  placeholder="Loại thiết bị"
+                  value={
+                    filter.deviceTypeId
+                      ? {
+                          label: filter.deviceTypeName,
+                          value: filter.deviceTypeId,
+                        }
+                      : null
+                  }
+                  onChange={(option) =>
+                    handleDeviceTypeChange(filter.id, option)
+                  }
+                  size="sm"
+                />
+              </div>
 
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500">Số lượng:</span>
                 <Input
                   type="number"
                   min={1}
-                  max={
-                    availableDevices.filter(
-                      (d) => d.deviceType?.id === filter.deviceTypeId,
-                    ).length || 10
-                  }
+                  max={100}
                   value={filter.quantity}
                   onChange={(e) =>
                     handleUpdateDeviceTypeFilter(

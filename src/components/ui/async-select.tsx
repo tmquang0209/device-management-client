@@ -19,6 +19,8 @@ export interface TransformKey {
 export interface AsyncSelectProps {
   endpoint: string;
   transformKey: TransformKey;
+  /** Key dùng để search - nếu không set sẽ dùng transformKey.label */
+  searchKey?: string;
   placeholder?: string;
   isSearchable?: boolean;
   queryParams?: Record<string, unknown>;
@@ -30,22 +32,40 @@ export interface AsyncSelectProps {
   emptyMessage?: string;
 }
 
+// Helper function to get nested value from object using dot notation
+// e.g., getNestedValue({ user: { name: "John" } }, "user.name") => "John"
+const getNestedValue = (
+  obj: Record<string, unknown>,
+  path: string,
+): unknown => {
+  return path.split(".").reduce((acc: unknown, part: string) => {
+    if (acc && typeof acc === "object") {
+      return (acc as Record<string, unknown>)[part];
+    }
+    return undefined;
+  }, obj);
+};
+
 export function AsyncSelect<T = Record<string, unknown>>(
   props: Readonly<AsyncSelectProps>,
 ) {
   const {
     endpoint,
     transformKey,
+    searchKey,
     value,
     onChange,
     queryParams = {},
-    placeholder = "Please select...",
+    placeholder = "Vui lòng chọn...",
     isSearchable = true,
     size = "md",
     disabled = false,
     className = "",
-    emptyMessage = "No options available",
+    emptyMessage = "Không có dữ liệu",
   } = props;
+
+  // Determine the search key - use searchKey prop if provided, otherwise use transformKey.label
+  const effectiveSearchKey = searchKey || transformKey.label;
 
   // Load options function with search
   const loadOptionsFunc = useCallback(
@@ -53,21 +73,23 @@ export function AsyncSelect<T = Record<string, unknown>>(
       try {
         const searchParams = {
           ...queryParams,
-          [transformKey.label]: inputValue.trim(),
+          [effectiveSearchKey]: inputValue.trim(),
         };
 
         const res = await api.get<IPaginatedResponse<T>>(endpoint, {
           params: searchParams,
         });
 
-        const transformedData = res.data.map((item: T) => ({
-          label: (item as Record<string, unknown>)[
-            transformKey.label
-          ] as string,
-          value: (item as Record<string, unknown>)[transformKey.value] as
-            | string
-            | number,
-        }));
+        const transformedData = res.data.map((item: T) => {
+          const itemRecord = item as Record<string, unknown>;
+          const labelValue = getNestedValue(itemRecord, transformKey.label);
+          const valueValue = getNestedValue(itemRecord, transformKey.value);
+
+          return {
+            label: (labelValue as string) || "",
+            value: (valueValue as string | number) || "",
+          };
+        });
 
         return transformedData;
       } catch (error) {
@@ -75,7 +97,7 @@ export function AsyncSelect<T = Record<string, unknown>>(
         return [];
       }
     },
-    [endpoint, queryParams, transformKey],
+    [endpoint, queryParams, transformKey, effectiveSearchKey],
   );
 
   // Create debounced version of loadOptions
@@ -112,14 +134,17 @@ export function AsyncSelect<T = Record<string, unknown>>(
       const res = await api.get<IPaginatedResponse<T>>(endpoint, {
         params: queryParams,
       });
-      const transformedData = res.data.map((item: T) => ({
-        label: (item as Record<string, unknown>)[transformKey.label] as string,
-        value: (item as Record<string, unknown>)[transformKey.value] as
-          | string
-          | number,
-      }));
+      const transformedData = res.data.map((item: T) => {
+        const itemRecord = item as Record<string, unknown>;
+        const labelValue = getNestedValue(itemRecord, transformKey.label);
+        const valueValue = getNestedValue(itemRecord, transformKey.value);
 
-      console.log("🚀 ~ AsyncSelect ~ transformedData:", transformedData);
+        return {
+          label: (labelValue as string) || "",
+          value: (valueValue as string | number) || "",
+        };
+      });
+
       return transformedData;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes

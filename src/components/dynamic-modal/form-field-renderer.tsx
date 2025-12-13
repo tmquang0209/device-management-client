@@ -202,7 +202,7 @@ export function FormFieldRenderer({
                       disabled={isDisabled}
                       className={field.className}
                       queryParams={field.queryParams}
-                      emptyMessage="No options available"
+                      emptyMessage="Không có lựa chọn nào phù hợp"
                     />
                   );
                 }
