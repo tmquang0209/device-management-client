@@ -251,37 +251,6 @@ export default function DevicePage() {
     enabled: mounted,
   });
 
-  const {
-    data: deviceLocations,
-    error: locationsError,
-    isLoading: locationsLoading,
-  } = useQuery({
-    queryKey: ["device-locations"],
-    queryFn: async (): Promise<IDeviceLocation[]> => {
-      const response =
-        await api.get<IResponse<IDeviceLocation[]>>("/device-locations");
-      return response.data || [];
-    },
-    retry: (failureCount, error) => {
-      if (failureCount < 3) {
-        const err = error as Error & { response?: { status?: number } };
-        if (
-          err?.response?.status &&
-          err.response.status >= 400 &&
-          err.response.status < 500
-        ) {
-          return false;
-        }
-        return true;
-      }
-      return false;
-    },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000,
-    enabled: mounted,
-  });
-
   useEffect(() => {
     if (typesError) {
       const errorMessage =
@@ -292,30 +261,11 @@ export default function DevicePage() {
     }
   }, [typesError]);
 
-  useEffect(() => {
-    if (locationsError) {
-      const errorMessage =
-        locationsError instanceof Error
-          ? locationsError.message
-          : "Không thể tải vị trí";
-      toast.error(errorMessage);
-    }
-  }, [locationsError]);
-
   const deviceFields = useMemo((): IFormFieldConfig[] => {
     const typeOptions =
       deviceTypes?.map((type) => ({
         label: type.deviceTypeName,
         value: type.id,
-      })) || [];
-    console.log("🚀 ~ DevicePage ~ deviceTypes:", deviceTypes);
-
-    const locationOptions =
-      deviceLocations?.map((location) => ({
-        label: location.rack
-          ? `${location.rack.code} [${location.xPosition},${location.yPosition}]`
-          : `[${location.xPosition},${location.yPosition}]`,
-        value: location.id,
       })) || [];
 
     return [
@@ -344,14 +294,6 @@ export default function DevicePage() {
         type: "select",
         placeholder: "Chọn loại thiết bị",
         options: typeOptions,
-        className: "w-full",
-      },
-      {
-        name: "deviceLocationId",
-        label: "Vị Trí",
-        type: "select",
-        placeholder: "Chọn vị trí",
-        options: locationOptions,
         className: "w-full",
       },
       {
@@ -388,12 +330,9 @@ export default function DevicePage() {
         description: "Thiết bị có hoạt động không?",
       },
     ];
-  }, [deviceTypes, deviceLocations]);
+  }, [deviceTypes]);
 
-  const columns = useMemo(
-    () => createColumns(deviceTypes, deviceLocations),
-    [deviceTypes, deviceLocations],
-  );
+  const columns = useMemo(() => createColumns(deviceTypes), [deviceTypes]);
 
   const getDevices = async (params: Record<string, unknown>) => {
     const response = await api.get<IPaginatedResponse<IDevice>>("/devices", {
@@ -405,7 +344,7 @@ export default function DevicePage() {
   const queryClient = useQueryClient();
 
   const onCreateDevice = () => {
-    if (typesLoading || locationsLoading) {
+    if (typesLoading) {
       toast.error("Vui lòng chờ dữ liệu tải xong");
       return;
     }
@@ -421,7 +360,7 @@ export default function DevicePage() {
   };
 
   const onEditDevice = (device: IDevice) => {
-    if (typesLoading || locationsLoading) {
+    if (typesLoading) {
       toast.error("Vui lòng chờ dữ liệu tải xong");
       return;
     }
@@ -497,7 +436,7 @@ export default function DevicePage() {
         }
       />
 
-      {open && (type === "delete" || !typesLoading) && !locationsLoading && (
+      {open && (type === "delete" || !typesLoading) && (
         <DynamicModal
           open={open}
           onOpenChange={setOpen}
