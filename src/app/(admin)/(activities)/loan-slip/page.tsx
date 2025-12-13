@@ -105,9 +105,11 @@ const createColumns = (
       if (status === 1) {
         return <Badge variant="default">Đang Mượn</Badge>;
       } else if (status === 2) {
-        return <Badge variant="success">Đã Đóng</Badge>;
+        return <Badge variant="success">Đã Nhập Kho</Badge>;
       } else if (status === 3) {
         return <Badge variant="destructive">Đã Hủy</Badge>;
+      } else if (status === 4) {
+        return <Badge variant="warning">Chưa Hoàn Tất Nhập Kho</Badge>;
       }
       return <Badge variant="secondary">Không xác định</Badge>;
     },
@@ -117,11 +119,12 @@ const createColumns = (
       filterType: "select",
       options: [
         { label: "Đang Mượn", value: 1 },
-        { label: "Đã Đóng", value: 2 },
+        { label: "Đã Nhập Kho", value: 2 },
         { label: "Đã Hủy", value: 3 },
+        { label: "Chưa Hoàn Tất Nhập Kho", value: 4 },
       ],
     },
-    size: 120,
+    size: 170,
   },
   {
     accessorKey: "createdAt",

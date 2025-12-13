@@ -1,6 +1,20 @@
 import { IPaginationRequest } from "./pagination.interface";
 import { IPartner } from "./partner.interface";
 
+/**
+ * Loan Slip Status Enum
+ * 1: BORROWING - Đang mượn
+ * 2: CLOSED - Đã đóng (đã nhập kho)
+ * 3: CANCELLED - Đã hủy
+ * 4: PARTIAL_RETURNED - Chưa hoàn tất nhập kho
+ */
+export enum ELoanSlipStatus {
+  BORROWING = 1,
+  CLOSED = 2,
+  CANCELLED = 3,
+  PARTIAL_RETURNED = 4,
+}
+
 export interface ILoanSlipDevice {
   id: string;
   deviceName: string;
@@ -41,7 +55,7 @@ export interface ILoanSlip {
   code: string;
   equipmentBorrowerId: string;
   equipmentLoanerId: string;
-  status: number; // 1: BORROWING, 2: CLOSED, 3: CANCELLED
+  status: ELoanSlipStatus; // 1: BORROWING, 2: CLOSED, 3: CANCELLED, 4: PARTIAL_RETURNED
   details?: ILoanSlipDetail[];
   borrower?: IPartner;
   loaner?: IPartner;

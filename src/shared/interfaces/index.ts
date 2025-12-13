@@ -11,6 +11,7 @@ export * from "./param.interface";
 export * from "./partner.interface";
 export * from "./payment.interface";
 export * from "./rack.interface";
+export * from "./return-slip.interface";
 export * from "./role.interface";
 export * from "./route.interface";
 export * from "./user.interface";
