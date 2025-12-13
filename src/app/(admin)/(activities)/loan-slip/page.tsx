@@ -8,12 +8,37 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/shared/data/api";
 import {
   IDevice,
@@ -29,43 +54,50 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ColumnDef } from "@tanstack/react-table";
 import dayjs from "dayjs";
-import {
-  Calendar,
-  MoreHorizontal,
-  Pencil,
-  Plus,
-  Trash2,
-  X,
-} from "lucide-react";
+import { Calendar, Eye, MoreHorizontal, Plus, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 const createColumns = (
   partners?: IPartner[],
   devices?: IDevice[],
+  onViewDetails?: (loanSlip: ILoanSlip) => void,
 ): ColumnDef<ILoanSlip>[] => [
   {
-    accessorKey: "id",
+    accessorKey: "code",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Mã Phiếu" />
+      <DataTableColumnHeader column={column} title="Mã Giao Dịch" />
     ),
     cell: ({ row }) => (
-      <span className="font-mono text-xs">{row.getValue("id")}</span>
+      <div className="flex items-center gap-2">
+        <span className="font-mono text-xs">{row.original.code}</span>
+        {onViewDetails && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onViewDetails(row.original)}
+            className="h-6 w-6 p-0"
+          >
+            <Eye className="h-3 w-3" />
+          </Button>
+        )}
+      </div>
     ),
-    size: 100,
+    size: 150,
   },
   {
     accessorKey: "equipmentBorrowerId",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Người Mượn" />
     ),
-    cell: ({ row }) => row.original.borrower?.user?.fullName || "N/A",
+    cell: ({ row }) => row.original.borrower?.user?.name || "N/A",
     enableColumnFilter: true,
     meta: {
       label: "Người Mượn",
       filterType: "select",
       options: partners?.map((partner) => ({
-        label: partner.user?.fullName || `Partner ${partner.id}`,
+        label: partner.user?.name || `Partner ${partner.id}`,
         value: partner.id,
       })),
     },
@@ -76,33 +108,17 @@ const createColumns = (
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Người Cho Mượn" />
     ),
-    cell: ({ row }) => row.original.loaner?.user?.fullName || "N/A",
+    cell: ({ row }) => row.original.loaner?.user?.name || "N/A",
     enableColumnFilter: true,
     meta: {
       label: "Người Cho Mượn",
       filterType: "select",
       options: partners?.map((partner) => ({
-        label: partner.user?.fullName || `Partner ${partner.id}`,
+        label: partner.user?.name || `Partner ${partner.id}`,
         value: partner.id,
       })),
     },
     size: 200,
-  },
-  {
-    accessorKey: "expectedReturnDate",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Ngày Dự Kiến Trả" />
-    ),
-    cell: ({ row }) =>
-      row.getValue("expectedReturnDate")
-        ? dayjs(row.getValue("expectedReturnDate")).format("DD/MM/YYYY")
-        : "N/A",
-    enableColumnFilter: true,
-    meta: {
-      filterType: "date",
-      label: "Ngày Dự Kiến Trả",
-    },
-    size: 150,
   },
   {
     accessorKey: "status",
@@ -153,6 +169,7 @@ function LoanSlipActions(
   onDelete: (loanSlip: ILoanSlip) => void,
   onEdit: (loanSlip: ILoanSlip) => void,
   onCancel: (loanSlip: ILoanSlip) => void,
+  onViewDetails: (loanSlip: ILoanSlip) => void,
 ) {
   const canEdit = row.status === 1; // Only allow edit if BORROWING
   const canCancel = row.status === 1; // Only allow cancel if BORROWING
@@ -166,13 +183,9 @@ function LoanSlipActions(
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem
-          onClick={() => onEdit(row)}
-          disabled={!canEdit}
-          className={canEdit ? "" : "opacity-50"}
-        >
-          <Pencil className="mr-2 h-4 w-4" />
-          Chỉnh sửa
+        <DropdownMenuItem onClick={() => onViewDetails(row)}>
+          <Eye className="mr-2 h-4 w-4" />
+          Xem chi tiết
         </DropdownMenuItem>
         {canCancel && (
           <>
@@ -187,19 +200,13 @@ function LoanSlipActions(
           </>
         )}
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => onDelete(row)}
-          className="text-red-600"
-        >
-          <Trash2 className="mr-2 h-4 w-4" />
-          Xóa
-        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
 
 export default function LoanSlipPage() {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState<boolean>(false);
   const [type, setType] = useState<"create" | "edit" | "view" | "delete">(
@@ -208,6 +215,17 @@ export default function LoanSlipPage() {
   const [selectedLoanSlipId, setSelectedLoanSlipId] = useState<string | null>(
     null,
   );
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedLoanSlip, setSelectedLoanSlip] = useState<ILoanSlip | null>(
+    null,
+  );
+  const [returnDialogOpen, setReturnDialogOpen] = useState(false);
+  const [selectedDeviceForReturn, setSelectedDeviceForReturn] = useState<{
+    deviceId: string;
+    deviceName: string;
+  } | null>(null);
+  const [returnStatus, setReturnStatus] = useState<string>("2"); // 2 = RETURNED
+  const [returnNote, setReturnNote] = useState("");
 
   useEffect(() => {
     setMounted(true);
@@ -296,14 +314,6 @@ export default function LoanSlipPage() {
   }, [devicesError]);
 
   const loanSlipFields = useMemo((): IFormFieldConfig[] => {
-    const partnerOptions =
-      partners?.map((partner) => ({
-        label: partner.user?.fullName
-          ? `${partner.user.fullName} (${partner.user.email})`
-          : `Partner ${partner.id}`,
-        value: partner.id,
-      })) || [];
-
     const deviceOptions =
       devices?.map((device) => {
         const serialPart = device.serial ? `- ${device.serial}` : "";
@@ -352,19 +362,21 @@ export default function LoanSlipPage() {
         className: "w-full",
       },
     ];
-  }, [partners, devices]);
+  }, [devices]);
 
   const columns = useMemo(
-    () => createColumns(partners, devices),
+    () =>
+      createColumns(partners, devices, (loanSlip) => {
+        setSelectedLoanSlip(loanSlip);
+        setDetailsOpen(true);
+      }),
     [partners, devices],
   );
 
   const getLoanSlips = async (params: Record<string, unknown>) => {
     const response = await api.get<IPaginatedResponse<ILoanSlip>>(
       "/loan-slips",
-      {
-        params,
-      },
+      { params },
     );
     return response;
   };
@@ -372,16 +384,11 @@ export default function LoanSlipPage() {
   const queryClient = useQueryClient();
 
   const onCreateLoanSlip = () => {
-    if (partnersLoading || devicesLoading) {
-      toast.error("Vui lòng chờ dữ liệu tải xong");
-      return;
-    }
-    setType("create");
-    setSelectedLoanSlipId(null);
-    setOpen(true);
+    router.push("/loan-slip/create");
   };
 
   const onDeleteLoanSlip = (loanSlip: ILoanSlip) => {
+    // Use DynamicModal for actual deletion (soft delete)
     setType("delete");
     setSelectedLoanSlipId(loanSlip.id);
     setOpen(true);
@@ -397,7 +404,58 @@ export default function LoanSlipPage() {
     setOpen(true);
   };
 
+  const onViewDetails = (loanSlip: ILoanSlip) => {
+    setSelectedLoanSlip(loanSlip);
+    setDetailsOpen(true);
+  };
+
+  const onReturnDevice = (deviceId: string, deviceName: string) => {
+    setSelectedDeviceForReturn({ deviceId, deviceName });
+    setReturnStatus("2");
+    setReturnNote("");
+    setReturnDialogOpen(true);
+  };
+
+  const handleReturnDevice = async () => {
+    if (!selectedLoanSlip || !selectedDeviceForReturn) return;
+
+    try {
+      await api.put(`/loan-slips/${selectedLoanSlip.id}/return`, {
+        items: [
+          {
+            deviceId: selectedDeviceForReturn.deviceId,
+            status: parseInt(returnStatus),
+            note: returnNote,
+          },
+        ],
+      });
+
+      toast.success("Trả thiết bị thành công");
+      setReturnDialogOpen(false);
+      setSelectedDeviceForReturn(null);
+      setReturnNote("");
+
+      // Refresh loan slip details
+      queryClient.invalidateQueries({
+        queryKey: ["loan-slips"],
+        exact: false,
+      });
+
+      // Refresh details if open
+      if (selectedLoanSlip) {
+        const response = await api.get<IResponse<ILoanSlip>>(
+          `/loan-slips/${selectedLoanSlip.id}`,
+        );
+        setSelectedLoanSlip(response.data || null);
+      }
+    } catch (error) {
+      const err = error as Error;
+      toast.error(err.message || "Không thể trả thiết bị");
+    }
+  };
+
   const onCancelLoanSlip = async (loanSlip: ILoanSlip) => {
+    // Cancel means setting status to CANCELLED, not deleting from database
     try {
       await api.delete(`/loan-slips/${loanSlip.id}/cancel`);
       toast.success("Hủy phiếu mượn thành công");
@@ -405,6 +463,10 @@ export default function LoanSlipPage() {
         queryKey: ["loan-slips"],
         exact: false,
       });
+      // Close details dialog if open
+      if (detailsOpen && selectedLoanSlip?.id === loanSlip.id) {
+        setDetailsOpen(false);
+      }
     } catch (error) {
       const err = error as Error;
       toast.error(err.message || "Không thể hủy phiếu mượn");
@@ -428,7 +490,9 @@ export default function LoanSlipPage() {
     } as const;
 
     const base = "/loan-slips" as const;
-    const idPath = selectedLoanSlipId ? `${base}/${selectedLoanSlipId}` : base;
+    const idPath = selectedLoanSlipId
+      ? `${base}/${selectedLoanSlipId}${isDelete ? "/cancel" : ""}`
+      : base;
 
     return {
       title: titleMap[type],
@@ -477,9 +541,221 @@ export default function LoanSlipPage() {
             onDeleteLoanSlip,
             onEditLoanSlip,
             onCancelLoanSlip,
+            onViewDetails,
           )
         }
       />
+
+      {/* Details Dialog */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Chi Tiết Giao Dịch Mượn</DialogTitle>
+            <DialogDescription>
+              Thông tin chi tiết về giao dịch mượn thiết bị
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedLoanSlip && (
+            <div className="space-y-6">
+              {/* Transaction Info */}
+              <div className="grid gap-4 rounded-lg border p-4">
+                <h3 className="text-lg font-semibold">Thông tin giao dịch</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground">
+                      Mã giao dịch
+                    </Label>
+                    <p className="font-mono text-sm">{selectedLoanSlip.id}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Trạng thái</Label>
+                    <div className="mt-1">
+                      {selectedLoanSlip.status === 1 && (
+                        <Badge variant="default">Đang Mượn</Badge>
+                      )}
+                      {selectedLoanSlip.status === 2 && (
+                        <Badge variant="success">Đã Đóng</Badge>
+                      )}
+                      {selectedLoanSlip.status === 3 && (
+                        <Badge variant="destructive">Đã Hủy</Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Người mượn</Label>
+                    <p className="font-medium">
+                      {selectedLoanSlip.borrower?.user?.name || "N/A"}
+                    </p>
+                    <p className="text-muted-foreground text-sm">
+                      {selectedLoanSlip.borrower?.user?.email}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">
+                      Người cho mượn
+                    </Label>
+                    <p className="font-medium">
+                      {selectedLoanSlip.loaner?.user?.name || "N/A"}
+                    </p>
+                    <p className="text-muted-foreground text-sm">
+                      {selectedLoanSlip.loaner?.user?.email}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Ngày tạo</Label>
+                    <p>
+                      {dayjs(selectedLoanSlip.createdAt).format(
+                        "DD/MM/YYYY HH:mm",
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Device List */}
+              <div className="rounded-lg border">
+                <div className="border-b p-4">
+                  <h3 className="text-lg font-semibold">Danh sách thiết bị</h3>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>STT</TableHead>
+                      <TableHead>Mã thiết bị</TableHead>
+                      <TableHead>Tên thiết bị</TableHead>
+                      <TableHead>Loại thiết bị</TableHead>
+                      <TableHead>Trạng thái</TableHead>
+                      <TableHead>Ngày trả</TableHead>
+                      <TableHead>Ghi chú</TableHead>
+                      <TableHead>Thao tác</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedLoanSlip.details &&
+                    selectedLoanSlip.details.length > 0 ? (
+                      selectedLoanSlip.details.map((detail, index) => (
+                        <TableRow key={detail.id}>
+                          <TableCell>{index + 1}</TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {detail.device?.id}
+                          </TableCell>
+                          <TableCell>{detail.device?.deviceName}</TableCell>
+                          <TableCell>
+                            {detail.device?.deviceType?.name || "N/A"}
+                          </TableCell>
+                          <TableCell>
+                            {detail.status === 1 && (
+                              <Badge variant="default">Đã mượn</Badge>
+                            )}
+                            {detail.status === 2 && (
+                              <Badge variant="success">Đã trả</Badge>
+                            )}
+                            {detail.status === 3 && (
+                              <Badge variant="destructive">Hỏng</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {detail.returnDate
+                              ? dayjs(detail.returnDate).format("DD/MM/YYYY")
+                              : "-"}
+                          </TableCell>
+                          <TableCell>{detail.note || "-"}</TableCell>
+                          <TableCell>
+                            {detail.status === 1 &&
+                              selectedLoanSlip.status === 1 && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    onReturnDevice(
+                                      detail.deviceId,
+                                      detail.device?.deviceName || "",
+                                    )
+                                  }
+                                >
+                                  Trả thiết bị
+                                </Button>
+                              )}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell
+                          colSpan={8}
+                          className="text-muted-foreground text-center"
+                        >
+                          Không có thiết bị nào
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDetailsOpen(false)}>
+              Đóng
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Return Device Dialog */}
+      <Dialog open={returnDialogOpen} onOpenChange={setReturnDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Trả Thiết Bị</DialogTitle>
+            <DialogDescription>
+              Cập nhật thông tin trả thiết bị:{" "}
+              {selectedDeviceForReturn?.deviceName}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="returnStatus">Trạng thái trả thiết bị</Label>
+              <Select value={returnStatus} onValueChange={setReturnStatus}>
+                <SelectTrigger id="returnStatus">
+                  <SelectValue placeholder="Chọn trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="2">Đã trả (nguyên vẹn)</SelectItem>
+                  <SelectItem value="3">Đã trả (hỏng)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="returnNote">Ghi chú</Label>
+              <Textarea
+                id="returnNote"
+                placeholder="Nhập ghi chú về tình trạng thiết bị..."
+                value={returnNote}
+                onChange={(e) => setReturnNote(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setReturnDialogOpen(false);
+                setSelectedDeviceForReturn(null);
+                setReturnNote("");
+              }}
+            >
+              Hủy
+            </Button>
+            <Button onClick={handleReturnDevice}>Xác nhận trả</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {open && (type === "delete" || (!partnersLoading && !devicesLoading)) && (
         <DynamicModal

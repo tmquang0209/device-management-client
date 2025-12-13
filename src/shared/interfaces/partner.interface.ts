@@ -2,7 +2,7 @@ import { IPaginationRequest } from "./pagination.interface";
 
 export interface IPartnerUser {
   id: string;
-  fullName: string;
+  name: string;
   email: string;
 }
 

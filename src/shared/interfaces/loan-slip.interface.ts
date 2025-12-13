@@ -6,6 +6,10 @@ export interface ILoanSlipDevice {
   deviceName: string;
   serial?: string;
   model?: string;
+  deviceType?: {
+    id: string;
+    name: string;
+  };
 }
 
 export interface ILoanSlipDetail {
@@ -35,10 +39,10 @@ export interface ILoanSlipUpdate extends Partial<ILoanSlipBase> {
 
 export interface ILoanSlip {
   id: string;
+  code: string;
   equipmentBorrowerId: string;
   equipmentLoanerId: string;
   status: number; // 1: BORROWING, 2: CLOSED, 3: CANCELLED
-  expectedReturnDate?: Date;
   details?: ILoanSlipDetail[];
   borrower?: IPartner;
   loaner?: IPartner;
