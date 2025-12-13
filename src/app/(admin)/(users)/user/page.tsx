@@ -17,7 +17,6 @@ import {
 import { api } from "@/shared/data/api";
 import {
   IPaginatedResponse,
-  IPartner,
   IUserInfo,
   IUserUpdate,
 } from "@/shared/interfaces";
@@ -25,7 +24,7 @@ import {
   createUserSchema,
   updateUserSchema,
 } from "@/shared/schema/admin/user.schema";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { ColumnDef } from "@tanstack/react-table";
 import dayjs from "dayjs";
 import { MoreHorizontal, Plus } from "lucide-react";
@@ -193,25 +192,7 @@ export default function UserPage() {
     setMounted(true);
   }, []);
 
-  // Fetch partners for selection
-  const { data: partnersData } = useQuery({
-    queryKey: ["partners"],
-    queryFn: async () => {
-      const response = await api.get<IPaginatedResponse<IPartner>>(
-        "/partners",
-        { params: { page: 1, pageSize: 1000 } },
-      );
-      return response;
-    },
-  });
-
   const userFields = useMemo((): IFormFieldConfig[] => {
-    const partnerOptions =
-      partnersData?.data.map((partner) => ({
-        label: partner.user?.fullName || partner.id,
-        value: partner.id,
-      })) || [];
-
     const baseFields: IFormFieldConfig[] = [
       {
         name: "name",
@@ -270,7 +251,7 @@ export default function UserPage() {
     );
 
     return baseFields;
-  }, [partnersData, type]);
+  }, [type]);
 
   // Create columns
   const columns = useMemo(() => createColumns(), []);

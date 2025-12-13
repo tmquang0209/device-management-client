@@ -1,13 +1,5 @@
 import { z } from "zod";
 
-const dateTransform = (val: unknown) => {
-  if (!val || val === "") return undefined;
-  if (typeof val === "string") {
-    return new Date(val);
-  }
-  return val;
-};
-
 export const createLoanSlipSchema = z.object({
   borrowerId: z.string().min(1, "Vui lòng chọn người mượn"),
   loanerId: z.string().min(1, "Vui lòng chọn người cho mượn"),

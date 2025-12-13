@@ -152,7 +152,8 @@ export default function CreateLoanSlipPage() {
       console.error("Failed to create loan slip:", error);
       const message =
         error instanceof Error && "response" in error
-          ? (error as any).response?.data?.message
+          ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (error as any).response?.data?.message
           : "Không thể tạo phiếu mượn";
       toast.error(message || "Không thể tạo phiếu mượn");
     } finally {

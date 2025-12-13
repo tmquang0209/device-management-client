@@ -1,5 +1,4 @@
 import {
-  Clock,
   CreditCard,
   FileText,
   Handshake,
@@ -10,7 +9,6 @@ import {
   Receipt,
   RotateCw,
   Settings,
-  Shield,
   Sliders,
   Users,
   Warehouse,

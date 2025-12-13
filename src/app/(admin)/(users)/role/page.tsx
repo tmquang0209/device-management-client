@@ -171,11 +171,7 @@ export default function RolePage() {
     setMounted(true);
   }, []);
 
-  const {
-    data: routes,
-    error: routesError,
-    isLoading: routesLoading,
-  } = useQuery({
+  const { data: routes, error: routesError } = useQuery({
     queryKey: ["routes"],
     queryFn: async (): Promise<RouteInfo[]> => {
       const response =

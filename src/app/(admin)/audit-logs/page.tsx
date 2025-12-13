@@ -41,7 +41,7 @@ function AuditLogActions(
             try {
               await navigator.clipboard.writeText(row.id);
               toast.success("ID copied to clipboard");
-            } catch (err) {
+            } catch {
               toast.error("Failed to copy ID");
             }
           }}
@@ -108,7 +108,7 @@ export default function AuditLogPage() {
       cell: ({ row }) => {
         const status = row.getValue("status");
         return (
-          <Badge variant={status === 'success' ? 'success' : 'destructive'}>
+          <Badge variant={status === "success" ? "success" : "destructive"}>
             {status as string}
           </Badge>
         );
@@ -124,21 +124,23 @@ export default function AuditLogPage() {
       },
     },
     {
-        accessorKey: "createdAt",
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Timestamp" />
-        ),
-        cell: ({ row }) => {
-            const createdAt = row.getValue("createdAt");
-            return createdAt ? dayjs(createdAt as string).format("DD/MM/YYYY HH:mm") : "-";
-        },
-        enableColumnFilter: true,
-        meta: {
-          filterType: "date",
-          label: "Timestamp",
-        },
-        size: 150,
+      accessorKey: "createdAt",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Timestamp" />
+      ),
+      cell: ({ row }) => {
+        const createdAt = row.getValue("createdAt");
+        return createdAt
+          ? dayjs(createdAt as string).format("DD/MM/YYYY HH:mm")
+          : "-";
       },
+      enableColumnFilter: true,
+      meta: {
+        filterType: "date",
+        label: "Timestamp",
+      },
+      size: 150,
+    },
   ];
 
   const getAuditLogs = async (params: Record<string, unknown>) => {
