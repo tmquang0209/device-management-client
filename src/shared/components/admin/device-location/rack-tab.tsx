@@ -31,14 +31,14 @@ const createColumns = (): ColumnDef<IRack>[] => [
   {
     accessorKey: "code",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Mã Rack" />
+      <DataTableColumnHeader column={column} title="Mã kệ" />
     ),
     cell: ({ row }) => row.getValue("code"),
     enableColumnFilter: true,
     meta: {
-      label: "Mã Rack",
+      label: "Mã kệ",
       filterType: "text",
-      placeholder: "Tìm kiếm theo mã rack...",
+      placeholder: "Tìm kiếm theo mã kệ...",
     },
     minSize: 150,
     maxSize: 250,
@@ -174,10 +174,10 @@ export function RackTab({ mounted }: Readonly<RackTabProps>) {
     if (isEdit) {
       fields.push({
         name: "code",
-        label: "Mã Rack",
+        label: "Mã kệ",
         type: "text",
-        placeholder: "Mã rack (tự động tạo)",
-        description: "Mã định danh duy nhất cho rack (chỉ xem)",
+        placeholder: "Mã kệ (tự động tạo)",
+        description: "Mã định danh duy nhất cho kệ (chỉ xem)",
         disabled: true,
       });
     }

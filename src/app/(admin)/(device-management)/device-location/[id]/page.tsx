@@ -566,9 +566,7 @@ export default function RackDiagramPage() {
                           </button>
                         )}
 
-                        <div className="mb-1 text-xs text-gray-500">
-                          [{row},{col}]
-                        </div>
+                        {/* Coordinate label removed as requested */}
                         {isEditing || !cellData ? (
                           <div className="relative h-full w-full">
                             <input

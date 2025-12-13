@@ -9,17 +9,11 @@ const statusTransform = (val: boolean | number): number => {
 
 export const createRackSchema = z.object({
   rows: z
-    .number({
-      required_error: "Số hàng là bắt buộc",
-      invalid_type_error: "Số hàng phải là số",
-    })
+    .number({ message: "Số hàng phải là số" })
     .min(1, "Số hàng phải lớn hơn 0")
     .max(100, "Số hàng không được vượt quá 100"),
   cols: z
-    .number({
-      required_error: "Số cột là bắt buộc",
-      invalid_type_error: "Số cột phải là số",
-    })
+    .number({ message: "Số cột phải là số" })
     .min(1, "Số cột phải lớn hơn 0")
     .max(100, "Số cột không được vượt quá 100"),
   status: z
@@ -35,20 +29,16 @@ export const updateRackSchema = z.object({
   id: z.string(),
   code: z
     .string()
-    .min(1, "Mã rack phải có ít nhất 1 ký tự")
-    .max(100, "Mã rack không được vượt quá 100 ký tự")
+    .min(1, "Mã kệ phải có ít nhất 1 ký tự")
+    .max(100, "Mã kệ không được vượt quá 100 ký tự")
     .optional(),
   rows: z
-    .number({
-      invalid_type_error: "Số hàng phải là số",
-    })
+    .number({ message: "Số hàng phải là số" })
     .min(1, "Số hàng phải lớn hơn 0")
     .max(100, "Số hàng không được vượt quá 100")
     .optional(),
   cols: z
-    .number({
-      invalid_type_error: "Số cột phải là số",
-    })
+    .number({ message: "Số cột phải là số" })
     .min(1, "Số cột phải lớn hơn 0")
     .max(100, "Số cột không được vượt quá 100")
     .optional(),
