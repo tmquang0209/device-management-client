@@ -1,7 +1,22 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -22,12 +37,13 @@ import {
 import { api } from "@/shared/data/api";
 import {
   IDevice,
+  IDeviceType,
   IPaginatedResponse,
   IPartner,
   IResponse,
 } from "@/shared/interfaces";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Minus, MoreVertical, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -35,8 +51,15 @@ import { toast } from "sonner";
 interface LoanSlipDevice {
   id: string;
   deviceId: string;
+  deviceCode: string;
   deviceName: string;
   deviceType: string;
+}
+
+interface DeviceTypeFilter {
+  id: string;
+  deviceTypeId: string;
+  quantity: number;
 }
 
 export default function CreateLoanSlipPage() {
@@ -51,8 +74,14 @@ export default function CreateLoanSlipPage() {
     note: "",
   });
   const [devices, setDevices] = useState<LoanSlipDevice[]>([]);
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
+  const [deviceTypeFilters, setDeviceTypeFilters] = useState<
+    DeviceTypeFilter[]
+  >([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [swapDialogOpen, setSwapDialogOpen] = useState(false);
+  const [deviceToSwap, setDeviceToSwap] = useState<LoanSlipDevice | null>(null);
+  const [swapCandidates, setSwapCandidates] = useState<IDevice[]>([]);
+  const [loadingSwapCandidates, setLoadingSwapCandidates] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -81,32 +110,183 @@ export default function CreateLoanSlipPage() {
     enabled: mounted,
   });
 
-  const handleAddDevice = () => {
-    if (!selectedDeviceId) {
-      toast.error("Vui lòng chọn thiết bị");
+  // Fetch device types
+  const { data: deviceTypes = [] } = useQuery({
+    queryKey: ["device-types"],
+    queryFn: async (): Promise<IDeviceType[]> => {
+      const response =
+        await api.get<IPaginatedResponse<IDeviceType>>("/device-types");
+      return response.data || [];
+    },
+    enabled: mounted,
+  });
+
+  // Mutation to fetch available devices for loan by type
+  const fetchAvailableDevicesMutation = useMutation({
+    mutationFn: async (params: { deviceTypeId: string; quantity: number }) => {
+      const response = await api.get<IResponse<IDevice[]>>(
+        "/devices/available-for-loan",
+        {
+          params: {
+            deviceTypeId: params.deviceTypeId,
+            quantity: params.quantity,
+          },
+        },
+      );
+      return response.data || [];
+    },
+  });
+
+  // Fetch devices from API when filters change
+  const fetchDevicesFromFilters = async () => {
+    if (deviceTypeFilters.length === 0) {
+      setDevices([]);
       return;
     }
 
-    const device = availableDevices.find((d) => d.id === selectedDeviceId);
-    if (!device) return;
-
-    // Check if device already added
-    if (devices.some((d) => d.deviceId === selectedDeviceId)) {
-      toast.error("Thiết bị đã được thêm vào danh sách");
+    const validFilters = deviceTypeFilters.filter((f) => f.deviceTypeId);
+    if (validFilters.length === 0) {
+      setDevices([]);
       return;
     }
 
-    setDevices([
-      ...devices,
+    try {
+      const results = await Promise.all(
+        validFilters.map((filter) =>
+          fetchAvailableDevicesMutation.mutateAsync({
+            deviceTypeId: filter.deviceTypeId,
+            quantity: filter.quantity,
+          }),
+        ),
+      );
+
+      const allDevices: LoanSlipDevice[] = [];
+      const usedDeviceIds = new Set<string>();
+
+      results.forEach((deviceList) => {
+        deviceList.forEach((device) => {
+          if (!usedDeviceIds.has(device.id)) {
+            usedDeviceIds.add(device.id);
+            allDevices.push({
+              id: `temp-${device.id}`,
+              deviceId: device.id,
+              deviceCode: device.serial || device.id.slice(0, 8),
+              deviceName: device.deviceName,
+              deviceType: device.deviceType?.deviceTypeName || "N/A",
+            });
+          }
+        });
+      });
+
+      setDevices(allDevices);
+    } catch (error) {
+      console.error("Failed to fetch available devices:", error);
+      toast.error("Không thể lấy danh sách thiết bị");
+    }
+  };
+
+  // Add new device type filter row
+  const handleAddDeviceTypeFilter = () => {
+    setDeviceTypeFilters([
+      ...deviceTypeFilters,
       {
-        id: `temp-${Date.now()}`,
-        deviceId: device.id,
-        deviceName: device.deviceName,
-        deviceType: device.deviceType?.deviceTypeName || "N/A",
+        id: `filter-${Date.now()}`,
+        deviceTypeId: "",
+        quantity: 1,
       },
     ]);
-    setSelectedDeviceId("");
   };
+
+  // Remove device type filter row
+  const handleRemoveDeviceTypeFilter = (id: string) => {
+    setDeviceTypeFilters(deviceTypeFilters.filter((f) => f.id !== id));
+  };
+
+  // Update device type filter
+  const handleUpdateDeviceTypeFilter = (
+    id: string,
+    field: "deviceTypeId" | "quantity",
+    value: string | number,
+  ) => {
+    setDeviceTypeFilters(
+      deviceTypeFilters.map((f) =>
+        f.id === id ? { ...f, [field]: value } : f,
+      ),
+    );
+  };
+
+  // Handle swap device - fetch candidates from API
+  const handleOpenSwapDialog = async (device: LoanSlipDevice) => {
+    setDeviceToSwap(device);
+    setSwapDialogOpen(true);
+    setLoadingSwapCandidates(true);
+
+    try {
+      // Find device type by device name
+      const deviceType = deviceTypes.find(
+        (dt) => dt.deviceTypeName === device.deviceType,
+      );
+
+      if (deviceType) {
+        // Fetch many devices of same type for swap options
+        const response = await api.get<IResponse<IDevice[]>>(
+          "/devices/available-for-loan",
+          {
+            params: {
+              deviceTypeId: deviceType.id,
+              quantity: 100, // Get many devices for swap options
+            },
+          },
+        );
+
+        const candidates = (response.data || []).filter(
+          (d) =>
+            d.id !== device.deviceId &&
+            !devices.some((selected) => selected.deviceId === d.id),
+        );
+        setSwapCandidates(candidates);
+      } else {
+        setSwapCandidates([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch swap candidates:", error);
+      setSwapCandidates([]);
+    } finally {
+      setLoadingSwapCandidates(false);
+    }
+  };
+
+  const handleSwapDevice = (newDeviceId: string) => {
+    if (!deviceToSwap) return;
+
+    const newDevice = swapCandidates.find((d) => d.id === newDeviceId);
+    if (!newDevice) return;
+
+    setDevices(
+      devices.map((d) =>
+        d.id === deviceToSwap.id
+          ? {
+              ...d,
+              deviceId: newDevice.id,
+              deviceCode: newDevice.serial || newDevice.id.slice(0, 8),
+              deviceName: newDevice.deviceName,
+              deviceType: newDevice.deviceType?.deviceTypeName || "N/A",
+            }
+          : d,
+      ),
+    );
+
+    setSwapDialogOpen(false);
+    setDeviceToSwap(null);
+    setSwapCandidates([]);
+    toast.success("Đổi thiết bị thành công");
+  };
+
+  // Update devices when filters change - call API
+  useEffect(() => {
+    fetchDevicesFromFilters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deviceTypeFilters]);
 
   const handleRemoveDevice = (id: string) => {
     setDevices(devices.filter((d) => d.id !== id));
@@ -278,47 +458,88 @@ export default function CreateLoanSlipPage() {
 
         {/* Danh sách thiết bị */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          {/* Header with title and count badge */}
+          <div className="flex items-center gap-4">
             <h3 className="text-lg font-semibold">Danh sách thiết bị</h3>
-            <div className="flex items-center gap-2">
-              <Select
-                value={selectedDeviceId}
-                onValueChange={setSelectedDeviceId}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Chọn thiết bị" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableDevices
-                    .filter(
-                      (d) => !devices.some((dev) => dev.deviceId === d.id),
-                    )
-                    .map((device) => (
-                      <SelectItem key={device.id} value={device.id}>
-                        {device.deviceName} - {device.serial || "N/A"}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-              <Button
-                type="button"
-                onClick={handleAddDevice}
-                size="sm"
-                variant="outline"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
+            <Badge variant="secondary" className="rounded-md px-3 py-1">
+              Số lượng đã chọn: {devices.length}
+            </Badge>
           </div>
 
+          {/* Add device type button */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleAddDeviceTypeFilter}
+            className="border-2 border-dashed"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+
+          {/* Device type filters */}
+          {deviceTypeFilters.map((filter) => (
+            <div key={filter.id} className="flex items-center gap-4">
+              <Select
+                value={filter.deviceTypeId}
+                onValueChange={(value) =>
+                  handleUpdateDeviceTypeFilter(filter.id, "deviceTypeId", value)
+                }
+              >
+                <SelectTrigger className="w-[200px] bg-gray-100 dark:bg-gray-700">
+                  <SelectValue placeholder="Loại thiết bị" />
+                </SelectTrigger>
+                <SelectContent>
+                  {deviceTypes.map((type) => (
+                    <SelectItem key={type.id} value={type.id}>
+                      {type.deviceTypeName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">Số lượng:</span>
+                <Input
+                  type="number"
+                  min={1}
+                  max={
+                    availableDevices.filter(
+                      (d) => d.deviceType?.id === filter.deviceTypeId,
+                    ).length || 10
+                  }
+                  value={filter.quantity}
+                  onChange={(e) =>
+                    handleUpdateDeviceTypeFilter(
+                      filter.id,
+                      "quantity",
+                      parseInt(e.target.value) || 1,
+                    )
+                  }
+                  className="w-20 bg-gray-100 dark:bg-gray-700"
+                />
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleRemoveDeviceTypeFilter(filter.id)}
+              >
+                <Minus className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+
+          {/* Device table */}
           <div className="rounded-md border">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="w-16">STT</TableHead>
-                  <TableHead>Mã thiết bị</TableHead>
-                  <TableHead>Tên thiết bị</TableHead>
-                  <TableHead>Loại thiết bị</TableHead>
+                <TableRow className="bg-gray-50 dark:bg-gray-800">
+                  <TableHead className="w-16 font-semibold">STT</TableHead>
+                  <TableHead className="font-semibold">Mã thiết bị</TableHead>
+                  <TableHead className="font-semibold">Tên thiết bị</TableHead>
+                  <TableHead className="font-semibold">Loại thiết bị</TableHead>
                   <TableHead className="w-16"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -335,21 +556,35 @@ export default function CreateLoanSlipPage() {
                 ) : (
                   devices.map((device, index) => (
                     <TableRow key={device.id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {device.deviceId.slice(0, 8)}...
+                      <TableCell className="font-medium text-green-600">
+                        {index + 1}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm text-green-600">
+                        {device.deviceCode}
                       </TableCell>
                       <TableCell>{device.deviceName}</TableCell>
                       <TableCell>{device.deviceType}</TableCell>
                       <TableCell>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveDevice(device.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button type="button" variant="ghost" size="sm">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => handleOpenSwapDialog(device)}
+                            >
+                              Đổi thiết bị
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleRemoveDevice(device.id)}
+                              className="text-red-600"
+                            >
+                              Xóa
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))
@@ -374,6 +609,95 @@ export default function CreateLoanSlipPage() {
           </Button>
         </div>
       </form>
+
+      {/* Swap Device Dialog */}
+      <Dialog open={swapDialogOpen} onOpenChange={setSwapDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Đổi thiết bị</DialogTitle>
+            <DialogDescription>
+              Chọn thiết bị khác cùng loại để thay thế cho:{" "}
+              <span className="font-semibold">{deviceToSwap?.deviceName}</span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="max-h-[400px] overflow-y-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50 dark:bg-gray-800">
+                  <TableHead className="font-semibold">Mã thiết bị</TableHead>
+                  <TableHead className="font-semibold">Tên thiết bị</TableHead>
+                  <TableHead className="font-semibold">Ngày nhập</TableHead>
+                  <TableHead className="w-24"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loadingSwapCandidates ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={4}
+                      className="text-center text-gray-500"
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-blue-600" />
+                        Đang tải...
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : swapCandidates.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={4}
+                      className="text-center text-gray-500"
+                    >
+                      Không có thiết bị nào khác cùng loại
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  swapCandidates.map((device) => (
+                    <TableRow key={device.id}>
+                      <TableCell className="font-mono text-sm text-green-600">
+                        {device.serial || device.id.slice(0, 8)}
+                      </TableCell>
+                      <TableCell>{device.deviceName}</TableCell>
+                      <TableCell className="text-sm text-gray-500">
+                        {device.createdAt
+                          ? new Date(device.createdAt).toLocaleDateString(
+                              "vi-VN",
+                            )
+                          : "N/A"}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => handleSwapDevice(device.id)}
+                        >
+                          Chọn
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setSwapDialogOpen(false);
+                setDeviceToSwap(null);
+                setSwapCandidates([]);
+              }}
+            >
+              Hủy
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
