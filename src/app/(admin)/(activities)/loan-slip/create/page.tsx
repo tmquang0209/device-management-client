@@ -26,7 +26,7 @@ import {
   IPartner,
   IResponse,
 } from "@/shared/interfaces";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -41,12 +41,12 @@ interface LoanSlipDevice {
 
 export default function CreateLoanSlipPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [mounted, setMounted] = useState(false);
   const [formData, setFormData] = useState({
     code: "",
     borrowerId: "",
     loanerId: "",
-    expectedReturnDate: "",
     actualReturnDate: "",
     note: "",
   });
@@ -136,11 +136,17 @@ export default function CreateLoanSlipPage() {
       await api.post("/loan-slips", {
         borrowerId: formData.borrowerId,
         loanerId: formData.loanerId,
-        expectedReturnDate: formData.expectedReturnDate,
         deviceIds: devices.map((d) => d.deviceId),
       });
 
       toast.success("Tạo phiếu mượn thành công");
+
+      // Invalidate loan-slips query to refetch data when navigating back
+      await queryClient.invalidateQueries({
+        queryKey: ["loan-slips"],
+        exact: false,
+      });
+
       router.push("/loan-slip");
     } catch (error) {
       console.error("Failed to create loan slip:", error);
@@ -206,7 +212,7 @@ export default function CreateLoanSlipPage() {
                   setFormData({ ...formData, borrowerId: value })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Chọn người mượn" />
                 </SelectTrigger>
                 <SelectContent>
@@ -227,7 +233,7 @@ export default function CreateLoanSlipPage() {
                   setFormData({ ...formData, loanerId: value })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Chọn người cho mượn" />
                 </SelectTrigger>
                 <SelectContent>
@@ -278,7 +284,7 @@ export default function CreateLoanSlipPage() {
                 value={selectedDeviceId}
                 onValueChange={setSelectedDeviceId}
               >
-                <SelectTrigger className="w-[300px]">
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Chọn thiết bị" />
                 </SelectTrigger>
                 <SelectContent>

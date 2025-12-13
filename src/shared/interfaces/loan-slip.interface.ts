@@ -27,7 +27,6 @@ export interface ILoanSlipDetail {
 export interface ILoanSlipBase {
   borrowerId: string;
   loanerId: string;
-  expectedReturnDate: Date;
   deviceIds: string[];
 }
 

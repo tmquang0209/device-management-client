@@ -11,13 +11,6 @@ const dateTransform = (val: unknown) => {
 export const createLoanSlipSchema = z.object({
   borrowerId: z.string().min(1, "Vui lòng chọn người mượn"),
   loanerId: z.string().min(1, "Vui lòng chọn người cho mượn"),
-  expectedReturnDate: z
-    .string()
-    .or(z.date())
-    .transform(dateTransform)
-    .refine((date) => date !== undefined, {
-      message: "Vui lòng chọn ngày dự kiến trả",
-    }),
   deviceIds: z
     .array(z.string())
     .min(1, "Vui lòng chọn ít nhất một thiết bị để mượn"),
@@ -29,13 +22,6 @@ export const updateLoanSlipSchema = z.object({
   id: z.string(),
   borrowerId: z.string().min(1, "Vui lòng chọn người mượn"),
   loanerId: z.string().min(1, "Vui lòng chọn người cho mượn"),
-  expectedReturnDate: z
-    .string()
-    .or(z.date())
-    .transform(dateTransform)
-    .refine((date) => date !== undefined, {
-      message: "Vui lòng chọn ngày dự kiến trả",
-    }),
   deviceIds: z
     .array(z.string())
     .min(1, "Vui lòng chọn ít nhất một thiết bị để mượn"),
