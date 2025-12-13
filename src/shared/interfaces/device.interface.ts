@@ -1,5 +1,6 @@
-import { IRack } from "./device-location.interface";
+import { IDeviceLocationInfo } from "./device-location.interface";
 import { IPaginationRequest } from "./pagination.interface";
+import { IRack } from "./rack.interface";
 
 export interface IDeviceType {
   id: string;
@@ -18,7 +19,7 @@ export interface IDeviceBase {
   serial?: string;
   model?: string;
   deviceTypeId: string;
-  rackId?: string;
+  deviceLocationId?: string;
   supplierId?: string;
   status?: number;
   purchaseDate?: Date;
@@ -35,7 +36,7 @@ export interface IDeviceUpdate extends Partial<IDeviceBase> {
 export interface IDevice extends IDeviceBase {
   id: string;
   deviceType?: IDeviceType;
-  rack?: IRack;
+  deviceLocation?: IDeviceLocationInfo & { rack?: IRack };
   supplier?: ISupplier;
   createdAt: Date;
   updatedAt: Date;
@@ -46,6 +47,6 @@ export interface IDeviceListRequest extends IPaginationRequest {
   take?: number;
   deviceName?: string;
   deviceTypeId?: string;
-  rackId?: string;
+  deviceLocationId?: string;
   status?: number;
 }

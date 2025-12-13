@@ -22,7 +22,8 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { ColumnDef } from "@tanstack/react-table";
 import dayjs from "dayjs";
-import { MoreHorizontal, Plus } from "lucide-react";
+import { LayoutGrid, MoreHorizontal, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -39,8 +40,26 @@ const createColumns = (): ColumnDef<IRack>[] => [
       filterType: "text",
       placeholder: "Tìm kiếm theo mã rack...",
     },
-    minSize: 200,
-    maxSize: 300,
+    minSize: 150,
+    maxSize: 250,
+  },
+  {
+    accessorKey: "rows",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Số Hàng" />
+    ),
+    cell: ({ row }) => row.getValue("rows"),
+    enableColumnFilter: false,
+    size: 100,
+  },
+  {
+    accessorKey: "cols",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Số Cột" />
+    ),
+    cell: ({ row }) => row.getValue("cols"),
+    enableColumnFilter: false,
+    size: 100,
   },
   {
     accessorKey: "status",
@@ -98,6 +117,7 @@ function RackActions(
   row: Readonly<IRack>,
   onDelete: (rack: IRack) => void,
   onEdit: (rack: IRack) => void,
+  onViewDiagram: (rack: IRack) => void,
 ) {
   return (
     <DropdownMenu>
@@ -121,6 +141,10 @@ function RackActions(
           Sao Chép ID
         </DropdownMenuItem>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => onViewDiagram(row)}>
+          <LayoutGrid className="mr-2 h-4 w-4" />
+          Xem Sơ Đồ
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => onEdit(row)}>
           Chỉnh Sửa
         </DropdownMenuItem>
@@ -135,6 +159,7 @@ interface RackTabProps {
 }
 
 export function RackTab({ mounted }: Readonly<RackTabProps>) {
+  const router = useRouter();
   const [open, setOpen] = useState<boolean>(false);
   const [type, setType] = useState<"create" | "edit" | "view" | "delete">(
     "create",
@@ -142,13 +167,35 @@ export function RackTab({ mounted }: Readonly<RackTabProps>) {
   const [selectedRackId, setSelectedRackId] = useState<string | null>(null);
 
   const rackFields = useMemo((): IFormFieldConfig[] => {
-    return [
-      {
+    const isEdit = type === "edit";
+
+    const fields: IFormFieldConfig[] = [];
+
+    if (isEdit) {
+      fields.push({
         name: "code",
         label: "Mã Rack",
         type: "text",
-        placeholder: "Nhập mã rack (ví dụ: RACK-001, RACK-A1)",
-        description: "Mã định danh duy nhất cho rack",
+        placeholder: "Mã rack (tự động tạo)",
+        description: "Mã định danh duy nhất cho rack (chỉ xem)",
+        disabled: true,
+      });
+    }
+
+    fields.push(
+      {
+        name: "rows",
+        label: "Số Hàng",
+        type: "number",
+        placeholder: "Nhập số hàng (1-100)",
+        description: "Số hàng trong rack",
+      },
+      {
+        name: "cols",
+        label: "Số Cột",
+        type: "number",
+        placeholder: "Nhập số cột (1-100)",
+        description: "Số cột trong rack",
       },
       {
         name: "status",
@@ -156,8 +203,10 @@ export function RackTab({ mounted }: Readonly<RackTabProps>) {
         type: "checkbox",
         description: "Rack có sẵn sàng sử dụng không?",
       },
-    ];
-  }, []);
+    );
+
+    return fields;
+  }, [type]);
 
   const columns = useMemo(() => createColumns(), []);
 
@@ -186,6 +235,10 @@ export function RackTab({ mounted }: Readonly<RackTabProps>) {
     setType("edit");
     setSelectedRackId(rack.id);
     setOpen(true);
+  };
+
+  const onViewDiagram = (rack: IRack) => {
+    router.push(`/device-location/${rack.id}`);
   };
 
   const modalConfig = useMemo(() => {
@@ -239,7 +292,9 @@ export function RackTab({ mounted }: Readonly<RackTabProps>) {
             <Plus className="h-4 w-4" />
           </Button>
         }
-        columnActions={(row) => RackActions(row, onDeleteRack, onEditRack)}
+        columnActions={(row) =>
+          RackActions(row, onDeleteRack, onEditRack, onViewDiagram)
+        }
       />
 
       {open && type !== "delete" && (

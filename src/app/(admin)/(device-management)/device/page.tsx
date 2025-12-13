@@ -17,9 +17,9 @@ import {
 import { api } from "@/shared/data/api";
 import {
   IDevice,
+  IDeviceLocation,
   IDeviceType,
   IPaginatedResponse,
-  IRack,
   IResponse,
 } from "@/shared/interfaces";
 import {
@@ -35,7 +35,7 @@ import { toast } from "sonner";
 
 const createColumns = (
   deviceTypes?: IDeviceType[],
-  racks?: IRack[],
+  deviceLocations?: IDeviceLocation[],
 ): ColumnDef<IDevice>[] => [
   {
     accessorKey: "deviceName",
@@ -95,18 +95,26 @@ const createColumns = (
     size: 200,
   },
   {
-    accessorKey: "rackId",
+    accessorKey: "deviceLocationId",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Rack" />
+      <DataTableColumnHeader column={column} title="Vị Trí" />
     ),
-    cell: ({ row }) => row.original.rack?.code || "N/A",
+    cell: ({ row }) => {
+      const location = row.original.deviceLocation;
+      if (!location) return "N/A";
+      return location.rack
+        ? `${location.rack.code} [${location.xPosition},${location.yPosition}]`
+        : `[${location.xPosition},${location.yPosition}]`;
+    },
     enableColumnFilter: true,
     meta: {
-      label: "Rack",
+      label: "Vị Trí",
       filterType: "select",
-      options: racks?.map((rack) => ({
-        label: rack.code,
-        value: rack.id,
+      options: deviceLocations?.map((loc) => ({
+        label: loc.rack
+          ? `${loc.rack.code} [${loc.xPosition},${loc.yPosition}]`
+          : `[${loc.xPosition},${loc.yPosition}]`,
+        value: loc.id,
       })),
     },
     size: 200,
@@ -244,13 +252,14 @@ export default function DevicePage() {
   });
 
   const {
-    data: racks,
-    error: racksError,
-    isLoading: racksLoading,
+    data: deviceLocations,
+    error: locationsError,
+    isLoading: locationsLoading,
   } = useQuery({
-    queryKey: ["racks"],
-    queryFn: async (): Promise<IRack[]> => {
-      const response = await api.get<IResponse<IRack[]>>("/racks");
+    queryKey: ["device-locations"],
+    queryFn: async (): Promise<IDeviceLocation[]> => {
+      const response =
+        await api.get<IResponse<IDeviceLocation[]>>("/device-locations");
       return response.data || [];
     },
     retry: (failureCount, error) => {
@@ -284,12 +293,14 @@ export default function DevicePage() {
   }, [typesError]);
 
   useEffect(() => {
-    if (racksError) {
+    if (locationsError) {
       const errorMessage =
-        racksError instanceof Error ? racksError.message : "Không thể tải rack";
+        locationsError instanceof Error
+          ? locationsError.message
+          : "Không thể tải vị trí";
       toast.error(errorMessage);
     }
-  }, [racksError]);
+  }, [locationsError]);
 
   const deviceFields = useMemo((): IFormFieldConfig[] => {
     const typeOptions =
@@ -299,10 +310,12 @@ export default function DevicePage() {
       })) || [];
     console.log("🚀 ~ DevicePage ~ deviceTypes:", deviceTypes);
 
-    const rackOptions =
-      racks?.map((rack) => ({
-        label: rack.code,
-        value: rack.id,
+    const locationOptions =
+      deviceLocations?.map((location) => ({
+        label: location.rack
+          ? `${location.rack.code} [${location.xPosition},${location.yPosition}]`
+          : `[${location.xPosition},${location.yPosition}]`,
+        value: location.id,
       })) || [];
 
     return [
@@ -334,11 +347,11 @@ export default function DevicePage() {
         className: "w-full",
       },
       {
-        name: "rackId",
-        label: "Rack",
+        name: "deviceLocationId",
+        label: "Vị Trí",
         type: "select",
-        placeholder: "Chọn rack",
-        options: rackOptions,
+        placeholder: "Chọn vị trí",
+        options: locationOptions,
         className: "w-full",
       },
       {
@@ -375,11 +388,11 @@ export default function DevicePage() {
         description: "Thiết bị có hoạt động không?",
       },
     ];
-  }, [deviceTypes, racks]);
+  }, [deviceTypes, deviceLocations]);
 
   const columns = useMemo(
-    () => createColumns(deviceTypes, racks),
-    [deviceTypes, racks],
+    () => createColumns(deviceTypes, deviceLocations),
+    [deviceTypes, deviceLocations],
   );
 
   const getDevices = async (params: Record<string, unknown>) => {
@@ -392,7 +405,7 @@ export default function DevicePage() {
   const queryClient = useQueryClient();
 
   const onCreateDevice = () => {
-    if (typesLoading || racksLoading) {
+    if (typesLoading || locationsLoading) {
       toast.error("Vui lòng chờ dữ liệu tải xong");
       return;
     }
@@ -408,7 +421,7 @@ export default function DevicePage() {
   };
 
   const onEditDevice = (device: IDevice) => {
-    if (typesLoading || racksLoading) {
+    if (typesLoading || locationsLoading) {
       toast.error("Vui lòng chờ dữ liệu tải xong");
       return;
     }
@@ -484,7 +497,7 @@ export default function DevicePage() {
         }
       />
 
-      {open && (type === "delete" || !typesLoading) && !racksLoading && (
+      {open && (type === "delete" || !typesLoading) && !locationsLoading && (
         <DynamicModal
           open={open}
           onOpenChange={setOpen}

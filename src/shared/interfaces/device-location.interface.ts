@@ -3,15 +3,6 @@ import {
   IPaginationResponse,
 } from "./pagination.interface";
 
-export interface IRack {
-  id: string;
-  code: string;
-  status: number;
-  createdAt: string;
-  updatedAt: string;
-  deviceLocations?: IDeviceLocationInfo[];
-}
-
 export interface IDeviceLocationInfo {
   id: string;
   xPosition?: string;

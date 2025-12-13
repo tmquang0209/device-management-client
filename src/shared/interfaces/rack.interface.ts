@@ -1,3 +1,4 @@
+import { IDeviceLocationInfo } from "./device-location.interface";
 import {
   IPaginationRequest,
   IPaginationResponse,
@@ -6,14 +7,19 @@ import {
 export interface IRack {
   id: string;
   code: string;
+  rows: number;
+  cols: number;
   status: number;
   createdAt: string;
   updatedAt: string;
   deletedAt?: string;
+  deviceLocations?: IDeviceLocationInfo[];
 }
 
 export interface IRackCreate {
-  code: string;
+  code?: string;
+  rows: number;
+  cols: number;
   status?: number;
 }
 
