@@ -21,6 +21,7 @@ import {
   IPaginatedResponse,
   IParamInfo,
   IPartner,
+  IPartnerUser,
   IResponse,
 } from "@/shared/interfaces";
 import {
@@ -37,7 +38,7 @@ import { toast } from "sonner";
 
 const createColumns = (
   partners?: IPartner[],
-  devices?: IDevice[],
+  users?: IPartnerUser[],
   onViewDetails?: (loanSlip: ILoanSlip) => void,
   statusList?: IParamInfo[],
 ): ColumnDef<ILoanSlip>[] => [
@@ -73,9 +74,9 @@ const createColumns = (
     meta: {
       label: "Người Mượn",
       filterType: "select",
-      options: partners?.map((partner) => ({
-        label: partner.user?.name || `Partner ${partner.id}`,
-        value: partner.id,
+      options: users?.map((user) => ({
+        label: user?.name || `User ${user.id}`,
+        value: user.id,
       })),
     },
     size: 200,
@@ -85,7 +86,7 @@ const createColumns = (
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Người tạo" />
     ),
-    cell: ({ row }) => row.original.loaner?.user?.name || "N/A",
+    cell: ({ row }) => row.original.loaner?.name || "N/A",
     enableColumnFilter: true,
     meta: {
       label: "Người tạo",
@@ -211,6 +212,37 @@ export default function LoanSlipPage() {
   }, []);
 
   const {
+    data: users,
+    error: usersError,
+    isLoading: usersLoading,
+  } = useQuery({
+    queryKey: ["users"],
+    queryFn: async (): Promise<IPartnerUser[]> => {
+      const response =
+        await api.get<IResponse<IPartnerUser[]>>("/users/get-list");
+      return response.data || [];
+    },
+    retry: (failureCount, error) => {
+      if (failureCount < 3) {
+        const err = error as Error & { response?: { status?: number } };
+        if (
+          err?.response?.status &&
+          err.response.status >= 400 &&
+          err.response.status < 500
+        ) {
+          return false;
+        }
+        return true;
+      }
+      return false;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000,
+    enabled: mounted,
+  });
+
+  const {
     data: partners,
     error: partnersError,
     isLoading: partnersLoading,
@@ -287,6 +319,16 @@ export default function LoanSlipPage() {
   });
 
   useEffect(() => {
+    if (usersError) {
+      const errorMessage =
+        usersError instanceof Error
+          ? usersError.message
+          : "Không thể tải danh sách người dùng";
+      toast.error(errorMessage);
+    }
+  }, [usersError]);
+
+  useEffect(() => {
     if (partnersError) {
       const errorMessage =
         partnersError instanceof Error
@@ -333,9 +375,9 @@ export default function LoanSlipPage() {
         label: "Người tạo",
         type: "async-select",
         placeholder: "Chọn Người tạo",
-        endpoint: "/partners",
+        endpoint: "/users/get-list",
         queryParams: { page: 1, pageSize: 50 },
-        transformKey: { value: "id", label: "partnerType" },
+        transformKey: { value: "id", label: "name" },
         mappingField: "id",
         className: "w-full",
       },
@@ -354,13 +396,13 @@ export default function LoanSlipPage() {
     () =>
       createColumns(
         partners,
-        devices,
+        users,
         (loanSlip) => {
           router.push(`/loan-slip/${loanSlip.id}`);
         },
         loanSlipStatusList,
       ),
-    [partners, devices, router, loanSlipStatusList],
+    [partners, users, router, loanSlipStatusList],
   );
 
   const getLoanSlips = async (params: Record<string, unknown>) => {

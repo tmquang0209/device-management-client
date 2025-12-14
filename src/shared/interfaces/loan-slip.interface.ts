@@ -60,7 +60,12 @@ export interface ILoanSlip {
   totalReturned?: number; // Tổng số thiết bị đã trả
   details?: ILoanSlipDetail[];
   borrower?: IPartner;
-  loaner?: IPartner;
+  loaner?: {
+    id: string;
+    name: string;
+    userName: string;
+    email?: string;
+  };
   createdAt: Date;
   updatedAt: Date;
 }

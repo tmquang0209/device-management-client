@@ -12,14 +12,7 @@ export interface IBasicUser {
   partnerId?: string;
 }
 
-export interface IUserInfo
-  extends Omit<IBasicUser, "accessToken" | "refreshToken"> {
-  partner?: {
-    id: string;
-    partnerType: number;
-    status: number;
-  };
-}
+export type IUserInfo = Omit<IBasicUser, "accessToken" | "refreshToken">;
 
 export interface IForgotPassword {
   status: string;

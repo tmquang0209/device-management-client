@@ -390,8 +390,8 @@ export default function CreateLoanSlipPage() {
                 <FormLabel htmlFor="loanerId">Người cho mượn *</FormLabel>
                 <FormControl>
                   <AsyncSelect
-                    endpoint="/partners"
-                    transformKey={{ label: "user.name", value: "id" }}
+                    endpoint="/users/get-list"
+                    transformKey={{ label: "name", value: "id" }}
                     placeholder="Chọn người cho mượn"
                     value={selectedLoaner}
                     onChange={(option) => {
