@@ -34,14 +34,91 @@ import {
   EMaintenanceSlipDetailStatus,
   EMaintenanceSlipStatus,
   IMaintenanceSlipInfo,
+  IParamInfo,
   IResponse,
 } from "@/shared/interfaces";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { ArrowLeft, Calendar, Hash, Loader2, User, X } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
+
+// Default status mappings (fallback)
+const defaultStatusMap: Record<
+  number,
+  {
+    label: string;
+    variant: "default" | "success" | "destructive" | "warning" | "secondary";
+  }
+> = {
+  [EMaintenanceSlipStatus.SENDING]: {
+    label: "Đang Bảo Trì",
+    variant: "default",
+  },
+  [EMaintenanceSlipStatus.CLOSED]: { label: "Đã Đóng", variant: "success" },
+  [EMaintenanceSlipStatus.CANCELLED]: {
+    label: "Đã Hủy",
+    variant: "destructive",
+  },
+  [EMaintenanceSlipStatus.PARTIAL_RETURNED]: {
+    label: "Chưa Hoàn Tất",
+    variant: "warning",
+  },
+};
+
+const defaultDetailStatusMap: Record<
+  number,
+  {
+    label: string;
+    variant: "default" | "success" | "destructive" | "warning" | "secondary";
+  }
+> = {
+  [EMaintenanceSlipDetailStatus.SENT]: {
+    label: "Đang Bảo Trì",
+    variant: "default",
+  },
+  [EMaintenanceSlipDetailStatus.RETURNED]: {
+    label: "Đã Nhận Lại",
+    variant: "success",
+  },
+  [EMaintenanceSlipDetailStatus.BROKEN]: {
+    label: "Hỏng",
+    variant: "destructive",
+  },
+};
+
+const getStatusVariant = (
+  code: string,
+): "default" | "success" | "destructive" | "warning" | "secondary" => {
+  switch (code) {
+    case "1":
+      return "default";
+    case "2":
+      return "success";
+    case "3":
+      return "destructive";
+    case "4":
+      return "warning";
+    default:
+      return "secondary";
+  }
+};
+
+const getDetailStatusVariant = (
+  code: string,
+): "default" | "success" | "destructive" | "warning" | "secondary" => {
+  switch (code) {
+    case "1":
+      return "default";
+    case "2":
+      return "success";
+    case "3":
+      return "destructive";
+    default:
+      return "secondary";
+  }
+};
 
 export default function MaintenanceSlipDetailPage() {
   const router = useRouter();
@@ -75,6 +152,98 @@ export default function MaintenanceSlipDetailPage() {
     },
     enabled: !!id,
   });
+
+  // Fetch statuses from API
+  const { data: statusList } = useQuery({
+    queryKey: ["maintenance-slip-statuses"],
+    queryFn: async (): Promise<IParamInfo[]> => {
+      const response = await api.get<IResponse<IParamInfo[]>>(
+        "/maintenance-slips/statuses",
+      );
+      return response.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Fetch detail statuses from API
+  const { data: detailStatusList } = useQuery({
+    queryKey: ["maintenance-slip-detail-statuses"],
+    queryFn: async (): Promise<IParamInfo[]> => {
+      const response = await api.get<IResponse<IParamInfo[]>>(
+        "/maintenance-slips/detail-statuses",
+      );
+      return response.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Build status map from API data
+  const statusMap = useMemo(() => {
+    if (!statusList || statusList.length === 0) {
+      return defaultStatusMap;
+    }
+    const map: Record<
+      number,
+      {
+        label: string;
+        variant:
+          | "default"
+          | "success"
+          | "destructive"
+          | "warning"
+          | "secondary";
+      }
+    > = {};
+    statusList.forEach((status) => {
+      map[parseInt(status.code)] = {
+        label: status.value,
+        variant: getStatusVariant(status.code),
+      };
+    });
+    return map;
+  }, [statusList]);
+
+  // Build detail status map from API data
+  const detailStatusMap = useMemo(() => {
+    if (!detailStatusList || detailStatusList.length === 0) {
+      return defaultDetailStatusMap;
+    }
+    const map: Record<
+      number,
+      {
+        label: string;
+        variant:
+          | "default"
+          | "success"
+          | "destructive"
+          | "warning"
+          | "secondary";
+      }
+    > = {};
+    detailStatusList.forEach((status) => {
+      map[parseInt(status.code)] = {
+        label: status.value,
+        variant: getDetailStatusVariant(status.code),
+      };
+    });
+    return map;
+  }, [detailStatusList]);
+
+  // Build return status options (exclude SENT status)
+  const returnStatusOptions = useMemo(() => {
+    if (!detailStatusList || detailStatusList.length === 0) {
+      return [
+        { value: "2", label: "Đã sửa (hoạt động bình thường)" },
+        { value: "3", label: "Không thể sửa (hỏng)" },
+      ];
+    }
+    return detailStatusList
+      .filter((status) => status.code !== "1") // Exclude SENT status
+      .map((status) => ({
+        value: status.code,
+        label: status.value,
+      }));
+  }, [detailStatusList]);
 
   const onReturnDevice = (deviceId: string, deviceName: string) => {
     setSelectedDeviceForReturn({ deviceId, deviceName });
@@ -143,31 +312,19 @@ export default function MaintenanceSlipDetailPage() {
   };
 
   const getStatusBadge = (status: EMaintenanceSlipStatus) => {
-    switch (status) {
-      case EMaintenanceSlipStatus.SENDING:
-        return <Badge variant="default">Đang Bảo Trì</Badge>;
-      case EMaintenanceSlipStatus.CLOSED:
-        return <Badge variant="success">Đã Đóng</Badge>;
-      case EMaintenanceSlipStatus.CANCELLED:
-        return <Badge variant="destructive">Đã Hủy</Badge>;
-      case EMaintenanceSlipStatus.PARTIAL_RETURNED:
-        return <Badge variant="warning">Chưa Hoàn Tất</Badge>;
-      default:
-        return <Badge variant="secondary">Không xác định</Badge>;
+    const statusInfo = statusMap[Number(status)];
+    if (statusInfo) {
+      return <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>;
     }
+    return <Badge variant="secondary">Không xác định</Badge>;
   };
 
   const getDeviceStatusBadge = (status: EMaintenanceSlipDetailStatus) => {
-    switch (status) {
-      case EMaintenanceSlipDetailStatus.SENT:
-        return <Badge variant="default">Đang Bảo Trì</Badge>;
-      case EMaintenanceSlipDetailStatus.RETURNED:
-        return <Badge variant="success">Đã Nhận Lại</Badge>;
-      case EMaintenanceSlipDetailStatus.BROKEN:
-        return <Badge variant="destructive">Hỏng</Badge>;
-      default:
-        return <Badge variant="secondary">Không xác định</Badge>;
+    const statusInfo = detailStatusMap[Number(status)];
+    if (statusInfo) {
+      return <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>;
     }
+    return <Badge variant="secondary">Không xác định</Badge>;
   };
 
   if (isLoading) {
@@ -411,10 +568,11 @@ export default function MaintenanceSlipDetailPage() {
                   <SelectValue placeholder="Chọn trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="2">
-                    Đã sửa (hoạt động bình thường)
-                  </SelectItem>
-                  <SelectItem value="3">Không thể sửa (hỏng)</SelectItem>
+                  {returnStatusOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

@@ -17,6 +17,7 @@ import {
   EMaintenanceSlipStatus,
   IMaintenanceSlipInfo,
   IPaginatedResponse,
+  IParamInfo,
   IPartner,
   IResponse,
 } from "@/shared/interfaces";
@@ -28,26 +29,57 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-const statusMap = {
+const defaultStatusMap: Record<
+  number,
+  {
+    label: string;
+    variant: "default" | "success" | "destructive" | "warning" | "secondary";
+  }
+> = {
   [EMaintenanceSlipStatus.SENDING]: {
     label: "Đang Bảo Trì",
-    variant: "default" as const,
+    variant: "default",
   },
   [EMaintenanceSlipStatus.CLOSED]: {
     label: "Đã Đóng",
-    variant: "success" as const,
+    variant: "success",
   },
   [EMaintenanceSlipStatus.CANCELLED]: {
     label: "Đã Hủy",
-    variant: "destructive" as const,
+    variant: "destructive",
   },
   [EMaintenanceSlipStatus.PARTIAL_RETURNED]: {
     label: "Chưa Hoàn Tất",
-    variant: "warning" as const,
+    variant: "warning",
   },
 };
 
+const getStatusVariant = (
+  code: string,
+): "default" | "success" | "destructive" | "warning" | "secondary" => {
+  switch (code) {
+    case "1":
+      return "default";
+    case "2":
+      return "success";
+    case "3":
+      return "destructive";
+    case "4":
+      return "warning";
+    default:
+      return "secondary";
+  }
+};
+
 const createColumns = (
+  statusMap: Record<
+    number,
+    {
+      label: string;
+      variant: "default" | "success" | "destructive" | "warning" | "secondary";
+    }
+  >,
+  statusOptions: { label: string; value: number }[],
   partners?: IPartner[],
   onViewDetails?: (slip: IMaintenanceSlipInfo) => void,
 ): ColumnDef<IMaintenanceSlipInfo>[] => [
@@ -133,15 +165,7 @@ const createColumns = (
     meta: {
       label: "Trạng Thái",
       filterType: "select",
-      options: [
-        { label: "Đang Bảo Trì", value: EMaintenanceSlipStatus.SENDING },
-        { label: "Đã Đóng", value: EMaintenanceSlipStatus.CLOSED },
-        { label: "Đã Hủy", value: EMaintenanceSlipStatus.CANCELLED },
-        {
-          label: "Chưa Hoàn Tất",
-          value: EMaintenanceSlipStatus.PARTIAL_RETURNED,
-        },
-      ],
+      options: statusOptions,
     },
     size: 170,
   },
@@ -207,6 +231,64 @@ export default function MaintenanceSlipPage() {
     setMounted(true);
   }, []);
 
+  // Fetch statuses from API
+  const { data: statusList } = useQuery({
+    queryKey: ["maintenance-slip-statuses"],
+    queryFn: async (): Promise<IParamInfo[]> => {
+      const response = await api.get<IResponse<IParamInfo[]>>(
+        "/maintenance-slips/statuses",
+      );
+      return response.data || [];
+    },
+    enabled: mounted,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Build status map from API data
+  const statusMap = useMemo(() => {
+    if (!statusList || statusList.length === 0) {
+      return defaultStatusMap;
+    }
+    const map: Record<
+      number,
+      {
+        label: string;
+        variant:
+          | "default"
+          | "success"
+          | "destructive"
+          | "warning"
+          | "secondary";
+      }
+    > = {};
+    statusList.forEach((status) => {
+      map[parseInt(status.code)] = {
+        label: status.value,
+        variant: getStatusVariant(status.code),
+      };
+    });
+    return map;
+  }, [statusList]);
+
+  // Build status options for filter
+  const statusOptions = useMemo(() => {
+    if (!statusList || statusList.length === 0) {
+      return [
+        { label: "Đang Bảo Trì", value: EMaintenanceSlipStatus.SENDING },
+        { label: "Đã Đóng", value: EMaintenanceSlipStatus.CLOSED },
+        { label: "Đã Hủy", value: EMaintenanceSlipStatus.CANCELLED },
+        {
+          label: "Chưa Hoàn Tất",
+          value: EMaintenanceSlipStatus.PARTIAL_RETURNED,
+        },
+      ];
+    }
+    return statusList.map((status) => ({
+      label: status.value,
+      value: parseInt(status.code),
+    }));
+  }, [statusList]);
+
   const { data: partners } = useQuery({
     queryKey: ["partners"],
     queryFn: async (): Promise<IPartner[]> => {
@@ -220,10 +302,10 @@ export default function MaintenanceSlipPage() {
 
   const columns = useMemo(
     () =>
-      createColumns(partners, (slip) => {
+      createColumns(statusMap, statusOptions, partners, (slip) => {
         router.push(`/maintenance-slip/${slip.id}`);
       }),
-    [partners, router],
+    [statusMap, statusOptions, partners, router],
   );
 
   const getMaintenanceSlips = async (params: Record<string, unknown>) => {

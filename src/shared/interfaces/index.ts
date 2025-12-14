@@ -5,6 +5,7 @@ export * from "./device-location.interface";
 export * from "./device-type.interface";
 export * from "./device.interface";
 export * from "./loan-slip.interface";
+export * from "./maintenance-return-slip.interface";
 export * from "./maintenance-slip.interface";
 export * from "./pagination.interface";
 export * from "./param.interface";

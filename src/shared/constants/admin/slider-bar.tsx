@@ -72,22 +72,21 @@ export const menuItems: MenuItem[] = [
   },
   {
     id: "warranty",
-    icon: Wrench,
+    icon: Settings,
     label: "Bảo hành",
     children: [
       {
         id: "warranty-slip",
-        icon: Receipt,
+        icon: FileText,
         label: "Phiếu bảo hành",
         href: "/maintenance-slip",
       },
-      // { id: "repair", icon: Wrench, label: "Sửa chữa", href: "/repair" },
-      // {
-      //   id: "waiting-list",
-      //   icon: Clock,
-      //   label: "Danh sách đợi",
-      //   href: "/waiting-list",
-      // },
+      {
+        id: "maintenance-slip-return",
+        icon: RotateCw,
+        label: "Phiếu trả bảo hành",
+        href: "/maintenance-slip/return",
+      },
     ],
   },
   {
