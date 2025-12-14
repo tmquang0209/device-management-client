@@ -23,30 +23,36 @@ import { format } from "date-fns";
 import { CalendarIcon, Filter, X } from "lucide-react";
 import { useState } from "react";
 
+// Loại bộ lọc
 export type FilterType =
-  | "text"
-  | "number"
-  | "select"
-  | "multiselect"
-  | "range"
-  | "date"
-  | "date-range";
+  | "text" // Văn bản
+  | "number" // Số
+  | "select" // Chọn một
+  | "multiselect" // Chọn nhiều
+  | "range" // Khoảng giá trị
+  | "date" // Ngày
+  | "date-range"; // Khoảng ngày
 
+// Tùy chọn cho các bộ lọc dạng chọn
 export interface FilterOption {
-  label: string;
-  value: string | number;
+  label: string; // Nhãn hiển thị
+  value: string | number; // Giá trị
 }
 
+// Cấu hình bộ lọc cho từng cột
 export interface ColumnFilterConfig {
-  type: FilterType;
-  options?: FilterOption[];
-  placeholder?: string;
-  min?: number;
-  max?: number;
+  type: FilterType; // Loại bộ lọc
+  options?: FilterOption[]; // Danh sách tùy chọn (nếu có)
+  placeholder?: string; // Gợi ý nhập liệu
+  min?: number; // Giá trị nhỏ nhất (nếu có)
+  max?: number; // Giá trị lớn nhất (nếu có)
 }
 
+// Props cho component bộ lọc cột
 interface DataTableColumnFilterProps<TData, TValue> {
-  column: Column<TData, TValue>;
+  column: Column<TData, TValue> & {
+    columnDef: { meta?: { label?: string; placeholder?: string } };
+  };
   config: ColumnFilterConfig;
 }
 
@@ -57,16 +63,17 @@ export function DataTableColumnFilter<TData, TValue>({
   const [isOpen, setIsOpen] = useState(false);
   const filterValue = column.getFilterValue();
 
+  // Xóa bộ lọc
   const clearFilter = () => {
     column.setFilterValue(undefined);
   };
 
   const hasFilter = filterValue !== undefined && filterValue !== "";
 
-  // Helper functions to avoid deep nesting
+  // Hàm phụ trợ để tránh lồng nhau sâu
   function handleTextOrNumberChange(
     value: string | React.ChangeEvent<HTMLInputElement>,
-    column: Column<TData, TValue>
+    column: Column<TData, TValue>,
   ) {
     if (typeof value === "string") {
       column.setFilterValue(value);
@@ -79,7 +86,7 @@ export function DataTableColumnFilter<TData, TValue>({
     checked: boolean,
     optionValue: string | number,
     selectedValues: string[],
-    column: Column<TData, TValue>
+    column: Column<TData, TValue>,
   ) {
     const stringValue = String(optionValue);
     const newValues = checked
@@ -88,12 +95,13 @@ export function DataTableColumnFilter<TData, TValue>({
     column.setFilterValue(newValues.length > 0 ? newValues : undefined);
   }
 
+  // Render nội dung bộ lọc theo loại
   const renderFilterContent = () => {
     switch (config.type) {
       case "text":
         return (
           <Input
-            placeholder={config.placeholder || `Filter ${column.id}...`}
+            placeholder={config.placeholder || `Lọc ${column.id}...`}
             value={(filterValue as string) ?? ""}
             onChange={(value) => handleTextOrNumberChange(value, column)}
             className="h-8 w-full border-none"
@@ -104,7 +112,7 @@ export function DataTableColumnFilter<TData, TValue>({
         return (
           <Input
             type="number"
-            placeholder={config.placeholder || `Filter ${column.id}...`}
+            placeholder={config.placeholder || `Lọc ${column.id}...`}
             value={(filterValue as string) ?? ""}
             onChange={(value) => handleTextOrNumberChange(value, column)}
             min={config.min}
@@ -120,7 +128,7 @@ export function DataTableColumnFilter<TData, TValue>({
             onValueChange={(value) => column.setFilterValue(value)}
           >
             <SelectTrigger className="h-8 w-full">
-              <SelectValue placeholder={config.placeholder || "Select..."} />
+              <SelectValue placeholder={config.placeholder || "Chọn..."} />
             </SelectTrigger>
             <SelectContent>
               {config.options?.map((option) => (
@@ -146,7 +154,7 @@ export function DataTableColumnFilter<TData, TValue>({
                       !!checked,
                       option.value,
                       selectedValues,
-                      column
+                      column,
                     )
                   }
                 />
@@ -171,7 +179,7 @@ export function DataTableColumnFilter<TData, TValue>({
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-xs">Min</Label>
+                <Label className="text-xs">Tối thiểu</Label>
                 <Input
                   type="number"
                   value={rangeValue[0]}
@@ -194,7 +202,7 @@ export function DataTableColumnFilter<TData, TValue>({
                 />
               </div>
               <div>
-                <Label className="text-xs">Max</Label>
+                <Label className="text-xs">Tối đa</Label>
                 <Input
                   type="number"
                   value={rangeValue[1]}
@@ -234,7 +242,7 @@ export function DataTableColumnFilter<TData, TValue>({
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateValue ? format(dateValue, "PPP") : "Pick a date"}
+                {dateValue ? format(dateValue, "PPP") : "Chọn ngày"}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0">
@@ -257,7 +265,7 @@ export function DataTableColumnFilter<TData, TValue>({
         return (
           <div className="space-y-2">
             <div>
-              <Label className="text-xs">From</Label>
+              <Label className="text-xs">Từ ngày</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -270,7 +278,7 @@ export function DataTableColumnFilter<TData, TValue>({
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {dateRangeValue[0]
                       ? format(dateRangeValue[0], "PPP")
-                      : "Start date"}
+                      : "Chọn ngày bắt đầu"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -290,7 +298,7 @@ export function DataTableColumnFilter<TData, TValue>({
               </Popover>
             </div>
             <div>
-              <Label className="text-xs">To</Label>
+              <Label className="text-xs">Đến ngày</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -303,7 +311,7 @@ export function DataTableColumnFilter<TData, TValue>({
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {dateRangeValue[1]
                       ? format(dateRangeValue[1], "PPP")
-                      : "End date"}
+                      : "Chọn ngày kết thúc"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -332,11 +340,11 @@ export function DataTableColumnFilter<TData, TValue>({
   };
 
   if (config.type === "text" || config.type === "number") {
-    // For simple filters, render inline
+    // Với bộ lọc đơn giản, hiển thị trực tiếp
     return renderFilterContent();
   }
 
-  // For complex filters, use popover
+  // Với bộ lọc phức tạp, dùng popover
   return (
     <div className="flex items-center space-x-1">
       <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -350,7 +358,22 @@ export function DataTableColumnFilter<TData, TValue>({
             )}
           >
             <Filter className="mr-2 h-3 w-3" />
-            {config.type}
+            {(() => {
+              switch (config.type) {
+                case "select":
+                  return "Chọn một";
+                case "multiselect":
+                  return "Chọn nhiều";
+                case "range":
+                  return "Khoảng giá trị";
+                case "date":
+                  return "Ngày";
+                case "date-range":
+                  return "Khoảng ngày";
+                default:
+                  return config.type;
+              }
+            })()}
             {hasFilter && (
               <div className="bg-primary text-primary-foreground ml-1 rounded-sm px-1 text-xs">
                 1
@@ -361,7 +384,10 @@ export function DataTableColumnFilter<TData, TValue>({
         <PopoverContent className="w-80" align="start">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="font-medium">Filter {column.id}</h4>
+              <h4 className="font-medium">
+                {column.columnDef.meta?.placeholder ??
+                  `Bộ lọc ${column.columnDef.meta?.label ?? column.id}`}
+              </h4>
               {hasFilter && (
                 <Button
                   variant="ghost"

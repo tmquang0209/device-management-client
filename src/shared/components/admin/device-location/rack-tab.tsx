@@ -22,7 +22,15 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { ColumnDef } from "@tanstack/react-table";
 import dayjs from "dayjs";
-import { LayoutGrid, MoreHorizontal, Plus } from "lucide-react";
+import {
+  Copy,
+  Edit,
+  Eye,
+  LayoutGrid,
+  MoreHorizontal,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -33,15 +41,45 @@ const createColumns = (): ColumnDef<IRack>[] => [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Mã kệ" />
     ),
-    cell: ({ row }) => row.getValue("code"),
+    cell: ({ row }) => (
+      <div className="flex items-center gap-2">
+        <span>{row.getValue("code")}</span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-5 w-5 p-0"
+          title="Xem sơ đồ"
+          onClick={() => {
+            // Use router from context if possible, fallback to window.location
+            if (typeof window !== "undefined") {
+              window.location.href = `/device-location/${row.original.id}`;
+            }
+          }}
+        >
+          <Eye className="h-4 w-4 text-blue-600" />
+        </Button>
+      </div>
+    ),
     enableColumnFilter: true,
     meta: {
       label: "Mã kệ",
       filterType: "text",
       placeholder: "Tìm kiếm theo mã kệ...",
     },
-    minSize: 150,
-    maxSize: 250,
+    minSize: 180,
+    maxSize: 280,
+  },
+  {
+    accessorKey: "count",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Số Thiết Bị" />
+    ),
+    cell: ({ row }) => row.getValue("count") ?? 0,
+    enableColumnFilter: false,
+    size: 100,
+    meta: {
+      label: "Số Thiết Bị",
+    },
   },
   {
     accessorKey: "rows",
@@ -138,6 +176,7 @@ function RackActions(
             }
           }}
         >
+          <Copy className="mr-2 h-4 w-4" />
           Sao Chép ID
         </DropdownMenuItem>
         <DropdownMenuSeparator />
@@ -146,9 +185,13 @@ function RackActions(
           Xem Sơ Đồ
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => onEdit(row)}>
+          <Edit className="mr-2 h-4 w-4" />
           Chỉnh Sửa
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onDelete(row)}>Xóa</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onDelete(row)}>
+          <Trash2 className="mr-2 h-4 w-4" />
+          Xóa
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -188,20 +231,14 @@ export function RackTab({ mounted }: Readonly<RackTabProps>) {
         label: "Số Hàng",
         type: "number",
         placeholder: "Nhập số hàng (1-100)",
-        description: "Số hàng trong rack",
+        description: "Số hàng trong kệ",
       },
       {
         name: "cols",
         label: "Số Cột",
         type: "number",
         placeholder: "Nhập số cột (1-100)",
-        description: "Số cột trong rack",
-      },
-      {
-        name: "status",
-        label: "Trạng Thái Hoạt Động",
-        type: "checkbox",
-        description: "Rack có sẵn sàng sử dụng không?",
+        description: "Số cột trong kệ",
       },
     );
 
@@ -210,6 +247,7 @@ export function RackTab({ mounted }: Readonly<RackTabProps>) {
 
   const columns = useMemo(() => createColumns(), []);
 
+  // Fetch racks and count devices for each rack
   const getRacks = async (params: Record<string, unknown>) => {
     const response = await api.get<IPaginatedResponse<IRack>>("/racks", {
       params,
@@ -245,16 +283,16 @@ export function RackTab({ mounted }: Readonly<RackTabProps>) {
     const isEdit = type === "edit";
     const isDelete = type === "delete";
     const titleMap = {
-      create: "Tạo Rack Mới",
-      edit: "Chỉnh Sửa Rack",
-      view: "Xem Chi Tiết Rack",
-      delete: "Xóa Rack",
+      create: "Tạo Kệ Mới",
+      edit: "Chỉnh Sửa kệ",
+      view: "Xem Chi Tiết kệ",
+      delete: "Xóa kệ",
     } as const;
     const subtitleMap = {
-      create: "Điền đầy đủ thông tin dưới đây để tạo rack mới.",
-      edit: "Sửa đổi thông tin rack dưới đây.",
-      view: "Xem chi tiết thông tin rack.",
-      delete: "Bạn có chắc chắn muốn xóa rack này không?",
+      create: "Điền đầy đủ thông tin dưới đây để tạo kệ mới.",
+      edit: "Sửa đổi thông tin kệ dưới đây.",
+      view: "Xem chi tiết thông tin kệ.",
+      delete: "Bạn có chắc chắn muốn xóa kệ này không?",
     } as const;
 
     const base = "/racks" as const;
@@ -284,9 +322,9 @@ export function RackTab({ mounted }: Readonly<RackTabProps>) {
         queryKey={["racks"]}
         queryFn={getRacks}
         searchColumn="code"
-        searchPlaceholder="Tìm kiếm rack..."
+        searchPlaceholder="Tìm kiếm kệ..."
         initialFilters={{}}
-        emptyMessage="Không tìm thấy rack nào."
+        emptyMessage="Không tìm thấy kệ nào."
         globalActions={
           <Button onClick={onCreateRack}>
             <Plus className="h-4 w-4" />

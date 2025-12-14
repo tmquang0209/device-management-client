@@ -7,6 +7,7 @@ import {
 export interface IRack {
   id: string;
   code: string;
+  count?: number;
   rows: number;
   cols: number;
   status: number;

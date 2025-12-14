@@ -30,14 +30,14 @@ const createColumns = (): ColumnDef<IDeviceLocation>[] => [
   {
     accessorKey: "rack.code",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Mã Rack" />
+      <DataTableColumnHeader column={column} title="Mã kệ" />
     ),
     cell: ({ row }) => row.original.rack?.code || "N/A",
     enableColumnFilter: true,
     meta: {
-      label: "Mã Rack",
+      label: "Mã kệ",
       filterType: "text",
-      placeholder: "Tìm kiếm theo mã rack...",
+      placeholder: "Tìm kiếm theo mã kệ...",
     },
     minSize: 180,
     maxSize: 250,
@@ -175,10 +175,10 @@ export function DeviceLocationTab({
     return [
       {
         name: "rackId",
-        label: "Rack",
+        label: "Kệ",
         type: "async-select",
-        placeholder: "Chọn rack",
-        description: "Chọn rack để đặt thiết bị",
+        placeholder: "Chọn kệ",
+        description: "Chọn kệ để đặt thiết bị",
         endpoint: "/racks",
         transformKey: {
           value: "id",
@@ -190,15 +190,15 @@ export function DeviceLocationTab({
         name: "xPosition",
         label: "Vị Trí X",
         type: "text",
-        placeholder: "Nhập vị trí X trên rack (ví dụ: A1, B2)",
-        description: "Tọa độ X trên lưới rack",
+        placeholder: "Nhập vị trí X trên kệ (ví dụ: A1, B2)",
+        description: "Tọa độ X trên lưới kệ",
       },
       {
         name: "yPosition",
         label: "Vị Trí Y",
         type: "text",
-        placeholder: "Nhập vị trí Y trên rack (ví dụ: 1, 2, 3)",
-        description: "Tọa độ Y trên lưới rack",
+        placeholder: "Nhập vị trí Y trên kệ (ví dụ: 1, 2, 3)",
+        description: "Tọa độ Y trên lưới kệ",
       },
       {
         name: "status",

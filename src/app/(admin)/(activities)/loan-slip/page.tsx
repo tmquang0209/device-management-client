@@ -81,12 +81,12 @@ const createColumns = (
   {
     accessorKey: "equipmentLoanerId",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Người Cho Mượn" />
+      <DataTableColumnHeader column={column} title="Người tạo" />
     ),
     cell: ({ row }) => row.original.loaner?.user?.name || "N/A",
     enableColumnFilter: true,
     meta: {
-      label: "Người Cho Mượn",
+      label: "Người tạo",
       filterType: "select",
       options: partners?.map((partner) => ({
         label: partner.user?.name || `Partner ${partner.id}`,
@@ -303,9 +303,9 @@ export default function LoanSlipPage() {
       },
       {
         name: "loanerId",
-        label: "Người Cho Mượn",
+        label: "Người tạo",
         type: "async-select",
-        placeholder: "Chọn người cho mượn",
+        placeholder: "Chọn Người tạo",
         endpoint: "/partners",
         queryParams: { page: 1, pageSize: 50 },
         transformKey: { value: "id", label: "partnerType" },
@@ -370,14 +370,14 @@ export default function LoanSlipPage() {
     // Cancel means setting status to CANCELLED, not deleting from database
     try {
       await api.delete(`/loan-slips/${loanSlip.id}/cancel`);
-      toast.success("Hủy phiếu mượn thành công");
+      toast.success("Hủy giao dịch mượn thành công");
       queryClient.invalidateQueries({
         queryKey: ["loan-slips"],
         exact: false,
       });
     } catch (error) {
       const err = error as Error;
-      toast.error(err.message || "Không thể hủy phiếu mượn");
+      toast.error(err.message || "Không thể hủy giao dịch mượn");
     }
   };
 
@@ -385,16 +385,16 @@ export default function LoanSlipPage() {
     const isEdit = type === "edit";
     const isDelete = type === "delete";
     const titleMap = {
-      create: "Tạo Phiếu Mượn Mới",
-      edit: "Chỉnh Sửa Phiếu Mượn",
-      view: "Xem Chi Tiết Phiếu Mượn",
-      delete: "Xóa Phiếu Mượn",
+      create: "Tạo giao dịch mượn Mới",
+      edit: "Chỉnh Sửa giao dịch mượn",
+      view: "Xem Chi Tiết giao dịch mượn",
+      delete: "Xóa giao dịch mượn",
     } as const;
     const subtitleMap = {
-      create: "Điền đầy đủ thông tin dưới đây để tạo phiếu mượn mới.",
-      edit: "Sửa đổi thông tin phiếu mượn dưới đây.",
-      view: "Xem chi tiết thông tin phiếu mượn.",
-      delete: "Bạn có chắc chắn muốn xóa phiếu mượn này không?",
+      create: "Điền đầy đủ thông tin dưới đây để tạo giao dịch mượn mới.",
+      edit: "Sửa đổi thông tin giao dịch mượn dưới đây.",
+      view: "Xem chi tiết thông tin giao dịch mượn.",
+      delete: "Bạn có chắc chắn muốn xóa giao dịch mượn này không?",
     } as const;
 
     const base = "/loan-slips" as const;
@@ -425,9 +425,9 @@ export default function LoanSlipPage() {
 
   return (
     <Card className="bg-white p-6 dark:bg-gray-800">
-      <h1 className="text-2xl font-bold">Quản Lý Phiếu Mượn</h1>
+      <h1 className="text-2xl font-bold">Quản Lý giao dịch mượn</h1>
       <p className="text-muted-foreground">
-        Quản lý các phiếu mượn thiết bị và thông tin của chúng
+        Quản lý các giao dịch mượn thiết bị và thông tin của chúng
       </p>
 
       <DataTable<ILoanSlip, unknown>
@@ -435,9 +435,9 @@ export default function LoanSlipPage() {
         queryKey={["loan-slips"]}
         queryFn={getLoanSlips}
         searchColumn="id"
-        searchPlaceholder="Tìm kiếm phiếu mượn..."
+        searchPlaceholder="Tìm kiếm giao dịch mượn..."
         initialFilters={{}}
-        emptyMessage="Không tìm thấy phiếu mượn nào."
+        emptyMessage="Không tìm thấy giao dịch mượn nào."
         globalActions={
           <Button onClick={onCreateLoanSlip}>
             <Plus className="h-4 w-4" />
@@ -470,11 +470,11 @@ export default function LoanSlipPage() {
               queryKey: ["loan-slips"],
               exact: false,
             });
-            let message = "Xóa phiếu mượn thành công";
+            let message = "Xóa giao dịch mượn thành công";
             if (type === "create") {
-              message = "Tạo phiếu mượn thành công";
+              message = "Tạo giao dịch mượn thành công";
             } else if (type === "edit") {
-              message = "Cập nhật phiếu mượn thành công";
+              message = "Cập nhật giao dịch mượn thành công";
             }
             toast.success(message);
             setOpen(false);

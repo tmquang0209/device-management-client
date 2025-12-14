@@ -305,6 +305,20 @@ export default function LoanSlipDetailPage() {
               </p>
             </div>
           </div>
+
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg bg-teal-50 p-2 dark:bg-teal-900/20">
+              <Hash className="h-5 w-5 text-teal-600" />
+            </div>
+            <div>
+              <Label className="text-muted-foreground text-sm">
+                Tổng số thiết bị đã trả
+              </Label>
+              <p className="font-medium">
+                {loanSlip.totalReturned || 0} / {loanSlip.details?.length || 0}
+              </p>
+            </div>
+          </div>
         </div>
       </Card>
 
@@ -324,9 +338,9 @@ export default function LoanSlipDetailPage() {
                 <TableHead>Tên thiết bị</TableHead>
                 <TableHead>Loại thiết bị</TableHead>
                 <TableHead>Trạng thái</TableHead>
+                <TableHead>Mã phiếu trả</TableHead>
                 <TableHead>Ngày trả</TableHead>
                 <TableHead>Ghi chú</TableHead>
-                <TableHead className="w-32">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -342,6 +356,9 @@ export default function LoanSlipDetailPage() {
                       {detail.device?.deviceType?.name || "N/A"}
                     </TableCell>
                     <TableCell>{getDeviceStatusBadge(detail.status)}</TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {detail.returnSlipCode || "-"}
+                    </TableCell>
                     <TableCell>
                       {detail.returnDate
                         ? dayjs(detail.returnDate).format("DD/MM/YYYY")
@@ -352,31 +369,15 @@ export default function LoanSlipDetailPage() {
                         {detail.note || "-"}
                       </span>
                     </TableCell>
-                    <TableCell>
-                      {detail.status === 1 && loanSlip.status === 1 && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            onReturnDevice(
-                              detail.deviceId,
-                              detail.device?.deviceName || "",
-                            )
-                          }
-                        >
-                          Trả thiết bị
-                        </Button>
-                      )}
-                    </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={8}
+                    colSpan={9}
                     className="text-muted-foreground py-10 text-center"
                   >
-                    Không có thiết bị nào trong phiếu mượn
+                    Không có thiết bị nào trong giao dịch mượn
                   </TableCell>
                 </TableRow>
               )}

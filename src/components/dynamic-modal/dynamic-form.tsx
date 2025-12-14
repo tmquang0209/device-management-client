@@ -40,9 +40,23 @@ export function DynamicForm({
   description,
   type,
 }: Readonly<DynamicFormProps>) {
-  let submitButtonLabel = "Submit";
+  let submitButtonLabel = "Gửi";
+  switch (type) {
+    case "create":
+      submitButtonLabel = "Tạo";
+      break;
+    case "edit":
+    case "update":
+      submitButtonLabel = "Cập nhật";
+      break;
+    case "view":
+      submitButtonLabel = "Xem";
+      break;
+    default:
+      submitButtonLabel = "Gửi";
+  }
   if (isLoading || isLoadingDetails) {
-    submitButtonLabel = "Processing...";
+    submitButtonLabel = "Đang xử lý...";
   }
 
   return (
@@ -90,7 +104,7 @@ export function DynamicForm({
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading || isLoadingDetails}
               >
-                Cancel
+                Huỷ
               </Button>
               {type !== "view" && (
                 <Button type="submit" disabled={isLoading || isLoadingDetails}>

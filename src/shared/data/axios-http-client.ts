@@ -1,4 +1,8 @@
-import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from "axios";
+import axios, {
+  AxiosInstance,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+} from "axios";
 import { parseApiError } from "../helper/error";
 import { useAuthStore } from "../store/auth.store";
 import { HttpClient, HttpClientConfig } from "./http-client";
@@ -19,6 +23,7 @@ export class AxiosHttpClient implements HttpClient {
       headers: {
         "Content-Type": "application/json",
         "x-client": process.env.NEXT_PUBLIC_CLIENT_TYPE || "system",
+        "Accept-Language": "vi", // Thêm header chấp nhận tiếng Việt
       },
     });
 
@@ -34,8 +39,10 @@ export class AxiosHttpClient implements HttpClient {
         const refreshTokenValue = user?.refreshToken;
 
         config.headers = config.headers || {};
+        // Đảm bảo luôn gửi header Accept-Language: vi
+        config.headers["Accept-Language"] = "vi";
 
-        // If the endpoint is /auth/refresh, use refresh token
+        // Nếu endpoint là /auth/refresh thì dùng refresh token
         if (
           config.url?.endsWith("/auth/refresh") &&
           refreshTokenValue &&

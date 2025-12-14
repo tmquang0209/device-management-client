@@ -471,7 +471,7 @@ export default function RackDiagramPage() {
     return (
       <Card className="bg-white p-6 dark:bg-gray-800">
         <div className="text-center">
-          <h2 className="text-xl font-semibold">Không tìm thấy rack</h2>
+          <h2 className="text-xl font-semibold">Không tìm thấy kệ</h2>
           <Button
             onClick={() => router.push("/device-location")}
             className="mt-4"
@@ -496,7 +496,7 @@ export default function RackDiagramPage() {
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <h1 className="text-2xl font-bold">Sơ Đồ Rack: {rack.code}</h1>
+            <h1 className="text-2xl font-bold">Sơ Đồ Kệ: {rack.code}</h1>
           </div>
           <p className="text-muted-foreground ml-10">
             {rack.rows} hàng × {rack.cols} cột. Click vào ô để chọn thiết bị

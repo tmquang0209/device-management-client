@@ -27,13 +27,11 @@ export default function DeviceLocationPage() {
 
   return (
     <Card className="bg-white p-6 dark:bg-gray-800">
-      <div className="mb-6">
+      <div>
         <h1 className="text-2xl font-bold">Quản Lý Kệ Lưu Trữ</h1>
         <p className="text-muted-foreground">Quản lý danh sách kệ lưu trữ</p>
       </div>
-      <div className="mt-6">
-        <RackTab mounted={mounted} />
-      </div>
+      <RackTab mounted={mounted} />
     </Card>
   );
 }

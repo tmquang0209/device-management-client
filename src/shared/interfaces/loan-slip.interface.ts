@@ -33,6 +33,7 @@ export interface ILoanSlipDetail {
   status: number; // 1: BORROWED, 2: RETURNED, 3: BROKEN
   returnDate?: Date;
   note?: string;
+  returnSlipCode?: string; // Mã phiếu trả (nếu đã trả)
   device?: ILoanSlipDevice;
   createdAt: Date;
   updatedAt: Date;
@@ -56,6 +57,7 @@ export interface ILoanSlip {
   equipmentBorrowerId: string;
   equipmentLoanerId: string;
   status: ELoanSlipStatus; // 1: BORROWING, 2: CLOSED, 3: CANCELLED, 4: PARTIAL_RETURNED
+  totalReturned?: number; // Tổng số thiết bị đã trả
   details?: ILoanSlipDetail[];
   borrower?: IPartner;
   loaner?: IPartner;

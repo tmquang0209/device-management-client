@@ -223,17 +223,17 @@ export function DataTable<TData, TValue>({
   const pageCount = Math.ceil(totalRows / pagination.pageSize);
 
   const finalColumns: ColumnDef<TData, TValue>[] = [
-    {
-      id: "select",
-      header: (props) => <CheckboxHeader table={props.table} />,
-      cell: ({ row }) => <CheckboxCell row={row} />,
-      enableHiding: false,
-      enablePinning: true,
-      enableSorting: false,
-      enableColumnFilter: false,
-      enableResizing: false,
-      size: 40,
-    },
+    // {
+    //   id: "select",
+    //   header: (props) => <CheckboxHeader table={props.table} />,
+    //   cell: ({ row }) => <CheckboxCell row={row} />,
+    //   enableHiding: false,
+    //   enablePinning: true,
+    //   enableSorting: false,
+    //   enableColumnFilter: false,
+    //   enableResizing: false,
+    //   size: 40,
+    // },
     ...columns,
     ...(columnActions
       ? [

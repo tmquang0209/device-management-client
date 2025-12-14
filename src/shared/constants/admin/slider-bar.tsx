@@ -58,12 +58,12 @@ export const menuItems: MenuItem[] = [
   {
     id: "activities",
     icon: CreditCard,
-    label: "Hoạt động",
+    label: "Giao dịch mượn - Hoàn trả",
     children: [
       {
         id: "loan-slip",
         icon: Receipt,
-        label: "Phiếu mượn",
+        label: "Giao dịch mượn",
         href: "/loan-slip",
       },
       { id: "return", icon: RotateCw, label: "Hoàn trả", href: "/return" },

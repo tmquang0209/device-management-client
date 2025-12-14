@@ -166,7 +166,7 @@ export function WarehouseLayoutTab() {
     }
 
     if (!selectedRack) {
-      toast.error("Vui lòng chọn rack");
+      toast.error("Vui lòng chọn kệ");
       return;
     }
 
@@ -222,7 +222,7 @@ export function WarehouseLayoutTab() {
       <div className="flex gap-4">
         <Select value={selectedRackId} onValueChange={handleRackSelect}>
           <SelectTrigger className="w-64">
-            <SelectValue placeholder="Chọn rack..." />
+            <SelectValue placeholder="Chọn kệ..." />
           </SelectTrigger>
           <SelectContent>
             {racksData?.data.map((rack) => (

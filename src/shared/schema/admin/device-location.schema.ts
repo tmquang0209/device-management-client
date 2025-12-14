@@ -29,7 +29,7 @@ export const createDeviceLocationSchema = z
       return data.rackId?.value;
     },
     {
-      message: "Vui lòng chọn rack",
+      message: "Vui lòng chọn kệ",
     },
   );
 
@@ -39,7 +39,7 @@ export type CreateDeviceLocationFormValues = z.infer<
 
 export const updateDeviceLocationSchema = z.object({
   id: z.string(),
-  rackId: z.string().min(1, "Vui lòng chọn rack"),
+  rackId: z.string().min(1, "Vui lòng chọn kệ"),
   xPosition: z
     .string()
     .max(50, "Vị trí X không được vượt quá 50 ký tự")

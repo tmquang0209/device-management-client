@@ -196,13 +196,13 @@ export function RackDiagram({ rack, open, onOpenChange }: RackDiagramProps) {
         ),
       );
 
-      toast.success("Đã lưu sơ đồ rack thành công!");
+      toast.success("Đã lưu sơ đồ kệ thành công!");
       queryClient.invalidateQueries({ queryKey: ["devices"] });
       queryClient.invalidateQueries({ queryKey: ["device-locations"] });
       onOpenChange(false);
     } catch (error) {
-      console.error("Failed to save rack diagram:", error);
-      toast.error("Không thể lưu sơ đồ rack");
+      console.error("Failed to save kệ diagram:", error);
+      toast.error("Không thể lưu sơ đồ kệ.");
     }
   };
 
@@ -242,7 +242,7 @@ export function RackDiagram({ rack, open, onOpenChange }: RackDiagramProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-6xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Sơ Đồ Rack: {rack.code}</DialogTitle>
+          <DialogTitle>Sơ Đồ kệ: {rack.code}</DialogTitle>
           <DialogDescription>
             {rack.rows} hàng × {rack.cols} cột. Nhấp vào ô để chọn thiết bị.
           </DialogDescription>

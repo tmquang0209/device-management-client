@@ -18,8 +18,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -30,11 +37,14 @@ import {
 } from "@/components/ui/table";
 import { api } from "@/shared/data/api";
 import { IDevice, IResponse } from "@/shared/interfaces";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Minus, MoreVertical, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { z } from "zod";
 
 interface LoanSlipDevice {
   id: string;
@@ -56,12 +66,24 @@ export default function CreateLoanSlipPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [mounted, setMounted] = useState(false);
-  const [formData, setFormData] = useState({
-    code: "",
-    borrowerId: "",
-    loanerId: "",
-    actualReturnDate: "",
-    note: "",
+  // Zod schema for validation
+  const loanSlipSchema = z.object({
+    code: z.string().optional(),
+    borrowerId: z.string().min(1, "Vui lòng chọn người mượn"),
+    loanerId: z.string().min(1, "Vui lòng chọn người cho mượn"),
+    note: z.string().optional(),
+  });
+
+  type LoanSlipFormValues = z.infer<typeof loanSlipSchema>;
+
+  const form = useForm<LoanSlipFormValues>({
+    resolver: zodResolver(loanSlipSchema),
+    defaultValues: {
+      code: "",
+      borrowerId: "",
+      loanerId: "",
+      note: "",
+    },
   });
   const [selectedBorrower, setSelectedBorrower] =
     useState<AsyncSelectOption | null>(null);
@@ -258,7 +280,7 @@ export default function CreateLoanSlipPage() {
     toast.success("Đổi thiết bị thành công");
   };
 
-  // Update devices when filters change - call API
+  // Auto-fetch devices when filters change
   useEffect(() => {
     fetchDevicesFromFilters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -268,41 +290,23 @@ export default function CreateLoanSlipPage() {
     setDevices(devices.filter((d) => d.id !== id));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.borrowerId) {
-      toast.error("Vui lòng chọn người mượn");
-      return;
-    }
-
-    if (!formData.loanerId) {
-      toast.error("Vui lòng chọn người cho mượn");
-      return;
-    }
-
+  const handleSubmit = form.handleSubmit(async (values) => {
     if (devices.length === 0) {
       toast.error("Vui lòng thêm ít nhất một thiết bị");
       return;
     }
-
     setIsSubmitting(true);
-
     try {
       await api.post("/loan-slips", {
-        borrowerId: formData.borrowerId,
-        loanerId: formData.loanerId,
+        borrowerId: values.borrowerId,
+        loanerId: values.loanerId,
         deviceIds: devices.map((d) => d.deviceId),
       });
-
       toast.success("Tạo phiếu mượn thành công");
-
-      // Invalidate loan-slips query to refetch data when navigating back
       await queryClient.invalidateQueries({
         queryKey: ["loan-slips"],
         exact: false,
       });
-
       router.push("/loan-slip");
     } catch (error) {
       console.error("Failed to create loan slip:", error);
@@ -315,7 +319,7 @@ export default function CreateLoanSlipPage() {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  });
 
   if (!mounted) {
     return (
@@ -342,240 +346,240 @@ export default function CreateLoanSlipPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Thông tin giao dịch */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Thông tin giao dịch</h3>
+      <Form {...form}>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Thông tin giao dịch */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Thông tin giao dịch</h3>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="code">Mã giao dịch mượn *</Label>
-              <Input
-                id="code"
-                value={formData.code}
-                onChange={(e) =>
-                  setFormData({ ...formData, code: e.target.value })
-                }
-                placeholder="Tự động tạo"
-                disabled
-              />
-            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <FormItem>
+                <FormLabel htmlFor="code">Mã giao dịch mượn *</FormLabel>
+                <FormControl>
+                  <Input
+                    id="code"
+                    {...form.register("code")}
+                    placeholder="Tự động tạo"
+                    disabled
+                  />
+                </FormControl>
+                <FormDescription>
+                  Mã sẽ được tự động tạo khi lưu.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
 
-            <div className="space-y-2">
-              <Label htmlFor="borrowerId">Tên người mượn *</Label>
-              <AsyncSelect
-                endpoint="/partners"
-                transformKey={{ label: "user.name", value: "id" }}
-                placeholder="Chọn người mượn"
-                value={selectedBorrower}
-                onChange={(option) => {
-                  setSelectedBorrower(option);
-                  setFormData({
-                    ...formData,
-                    borrowerId: option ? String(option.value) : "",
-                  });
-                }}
-              />
-            </div>
+              <FormItem>
+                <FormLabel htmlFor="borrowerId">Tên người mượn *</FormLabel>
+                <FormControl>
+                  <AsyncSelect
+                    endpoint="/partners"
+                    transformKey={{ label: "user.name", value: "id" }}
+                    placeholder="Chọn người mượn"
+                    value={selectedBorrower}
+                    onChange={(option) => {
+                      setSelectedBorrower(option);
+                      form.setValue(
+                        "borrowerId",
+                        option ? String(option.value) : "",
+                      );
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
 
-            <div className="space-y-2">
-              <Label htmlFor="loanerId">Người cho mượn *</Label>
-              <AsyncSelect
-                endpoint="/partners"
-                transformKey={{ label: "user.name", value: "id" }}
-                placeholder="Chọn người cho mượn"
-                value={selectedLoaner}
-                onChange={(option) => {
-                  setSelectedLoaner(option);
-                  setFormData({
-                    ...formData,
-                    loanerId: option ? String(option.value) : "",
-                  });
-                }}
-              />
-            </div>
+              <FormItem>
+                <FormLabel htmlFor="loanerId">Người cho mượn *</FormLabel>
+                <FormControl>
+                  <AsyncSelect
+                    endpoint="/partners"
+                    transformKey={{ label: "user.name", value: "id" }}
+                    placeholder="Chọn người cho mượn"
+                    value={selectedLoaner}
+                    onChange={(option) => {
+                      setSelectedLoaner(option);
+                      form.setValue(
+                        "loanerId",
+                        option ? String(option.value) : "",
+                      );
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
 
-            <div className="space-y-2">
-              <Label htmlFor="actualReturnDate">Ngày cập nhật</Label>
-              <Input
-                id="actualReturnDate"
-                type="date"
-                value={formData.actualReturnDate}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    actualReturnDate: e.target.value,
-                  })
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="note">Ghi chú</Label>
-              <Input
-                id="note"
-                value={formData.note}
-                onChange={(e) =>
-                  setFormData({ ...formData, note: e.target.value })
-                }
-                placeholder="Nhập ghi chú"
-              />
+              <FormItem>
+                <FormLabel htmlFor="note">Ghi chú</FormLabel>
+                <FormControl>
+                  <Input
+                    id="note"
+                    {...form.register("note")}
+                    placeholder="Nhập ghi chú"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             </div>
           </div>
-        </div>
 
-        {/* Danh sách thiết bị */}
-        <div className="space-y-4">
-          {/* Header with title and count badge */}
-          <div className="flex items-center gap-4">
-            <h3 className="text-lg font-semibold">Danh sách thiết bị</h3>
-            <Badge variant="secondary" className="rounded-md px-3 py-1">
-              Số lượng đã chọn: {devices.length}
-            </Badge>
-          </div>
+          {/* Danh sách thiết bị */}
+          <div className="space-y-4">
+            {/* Header with title and count badge */}
+            <div className="flex items-center gap-4">
+              <h3 className="text-lg font-semibold">Danh sách thiết bị</h3>
+              <Badge variant="secondary" className="rounded-md px-3 py-1">
+                Số lượng đã chọn: {devices.length}
+              </Badge>
+            </div>
 
-          {/* Add device type button */}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleAddDeviceTypeFilter}
-            className="border-2 border-dashed"
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
+            {/* Add device type button */}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAddDeviceTypeFilter}
+              className="border-2 border-dashed"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
 
-          {/* Device type filters */}
-          {deviceTypeFilters.map((filter) => (
-            <div key={filter.id} className="flex items-center gap-4">
-              <div className="w-[250px]">
-                <AsyncSelect
-                  endpoint="/device-types"
-                  transformKey={{ label: "deviceTypeName", value: "id" }}
-                  placeholder="Loại thiết bị"
-                  value={
-                    filter.deviceTypeId
-                      ? {
-                          label: filter.deviceTypeName,
-                          value: filter.deviceTypeId,
-                        }
-                      : null
-                  }
-                  onChange={(option) =>
-                    handleDeviceTypeChange(filter.id, option)
-                  }
+            {/* Device type filters */}
+            {deviceTypeFilters.map((filter) => (
+              <div key={filter.id} className="flex items-center gap-4">
+                <div className="w-[250px]">
+                  <AsyncSelect
+                    endpoint="/device-types"
+                    transformKey={{ label: "deviceTypeName", value: "id" }}
+                    placeholder="Loại thiết bị"
+                    value={
+                      filter.deviceTypeId
+                        ? {
+                            label: filter.deviceTypeName,
+                            value: filter.deviceTypeId,
+                          }
+                        : null
+                    }
+                    onChange={(option) =>
+                      handleDeviceTypeChange(filter.id, option)
+                    }
+                    size="sm"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">Số lượng:</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={filter.quantity}
+                    placeholder="Nhập số luợng thiết bị"
+                    onChange={(e) =>
+                      handleUpdateDeviceTypeFilter(
+                        filter.id,
+                        "quantity",
+                        parseInt(e.target.value),
+                      )
+                    }
+                    className="w-36"
+                  />
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
                   size="sm"
-                />
+                  onClick={() => handleRemoveDeviceTypeFilter(filter.id)}
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
               </div>
+            ))}
 
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">Số lượng:</span>
-                <Input
-                  type="number"
-                  min={1}
-                  max={100}
-                  value={filter.quantity}
-                  placeholder="Nhập số luợng thiết bị"
-                  onChange={(e) =>
-                    handleUpdateDeviceTypeFilter(
-                      filter.id,
-                      "quantity",
-                      parseInt(e.target.value),
-                    )
-                  }
-                  className="w-36"
-                />
-              </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleRemoveDeviceTypeFilter(filter.id)}
-              >
-                <Minus className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
-
-          {/* Device table */}
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gray-50 dark:bg-gray-800">
-                  <TableHead className="w-16 font-semibold">STT</TableHead>
-                  <TableHead className="font-semibold">Mã thiết bị</TableHead>
-                  <TableHead className="font-semibold">Tên thiết bị</TableHead>
-                  <TableHead className="font-semibold">Loại thiết bị</TableHead>
-                  <TableHead className="w-16"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {devices.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="text-center text-gray-500"
-                    >
-                      Chưa có thiết bị nào được thêm
-                    </TableCell>
+            {/* Device table */}
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50 dark:bg-gray-800">
+                    <TableHead className="w-16 font-semibold">STT</TableHead>
+                    <TableHead className="font-semibold">Mã thiết bị</TableHead>
+                    <TableHead className="font-semibold">
+                      Tên thiết bị
+                    </TableHead>
+                    <TableHead className="font-semibold">
+                      Loại thiết bị
+                    </TableHead>
+                    <TableHead className="w-16"></TableHead>
                   </TableRow>
-                ) : (
-                  devices.map((device, index) => (
-                    <TableRow key={device.id}>
-                      <TableCell className="font-medium text-green-600">
-                        {index + 1}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm text-green-600">
-                        {device.deviceCode}
-                      </TableCell>
-                      <TableCell>{device.deviceName}</TableCell>
-                      <TableCell>{device.deviceType}</TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button type="button" variant="ghost" size="sm">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => handleOpenSwapDialog(device)}
-                            >
-                              Đổi thiết bị
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleRemoveDevice(device.id)}
-                              className="text-red-600"
-                            >
-                              Xóa
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                </TableHeader>
+                <TableBody>
+                  {devices.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        className="text-center text-gray-500"
+                      >
+                        Chưa có thiết bị nào được thêm
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    devices.map((device, index) => (
+                      <TableRow key={device.id}>
+                        <TableCell className="font-medium text-green-600">
+                          {index + 1}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm text-green-600">
+                          {device.deviceCode}
+                        </TableCell>
+                        <TableCell>{device.deviceName}</TableCell>
+                        <TableCell>{device.deviceType}</TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button type="button" variant="ghost" size="sm">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => handleOpenSwapDialog(device)}
+                              >
+                                Đổi thiết bị
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleRemoveDevice(device.id)}
+                                className="text-red-600"
+                              >
+                                Xóa
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
-        </div>
 
-        {/* Actions */}
-        <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.push("/loan-slip")}
-            disabled={isSubmitting}
-          >
-            Hủy
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Đang lưu..." : "Lưu"}
-          </Button>
-        </div>
-      </form>
+          {/* Actions */}
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push("/loan-slip")}
+              disabled={isSubmitting}
+            >
+              Hủy
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Đang lưu..." : "Lưu"}
+            </Button>
+          </div>
+        </form>
+      </Form>
 
       {/* Swap Device Dialog */}
       <Dialog open={swapDialogOpen} onOpenChange={setSwapDialogOpen}>

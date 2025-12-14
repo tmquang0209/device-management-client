@@ -9,16 +9,16 @@
 export enum EDeviceStatus {
   AVAILABLE = 1,
   ON_LOAN = 2,
-  UNDER_WARRANTY = 3,
-  BROKEN = 4,
+  // UNDER_WARRANTY = 3,
+  // BROKEN = 4,
   MAINTENANCE = 5,
 }
 
 export const DeviceStatusLabel: Record<EDeviceStatus, string> = {
-  [EDeviceStatus.AVAILABLE]: "Sẵn sàng",
-  [EDeviceStatus.ON_LOAN]: "Đang cho mượn",
-  [EDeviceStatus.UNDER_WARRANTY]: "Đang bảo hành",
-  [EDeviceStatus.BROKEN]: "Hỏng",
+  [EDeviceStatus.AVAILABLE]: "Đã nhập kho",
+  [EDeviceStatus.ON_LOAN]: "Đang mượn",
+  // [EDeviceStatus.UNDER_WARRANTY]: "Đang bảo trì",
+  // [EDeviceStatus.BROKEN]: "Đang bảo trì",
   [EDeviceStatus.MAINTENANCE]: "Đang bảo trì",
 };
 

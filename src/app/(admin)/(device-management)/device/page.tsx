@@ -65,19 +65,21 @@ const createColumns = (
     meta: {
       label: "Số Sê-ri",
       filterType: "text",
+      placeholder: "Tìm kiếm theo số sê-ri...",
     },
     size: 150,
   },
   {
     accessorKey: "model",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Mẫu" />
+      <DataTableColumnHeader column={column} title="Phiên bản" />
     ),
     cell: ({ row }) => row.getValue("model") || "N/A",
     enableColumnFilter: true,
     meta: {
-      label: "Mẫu",
+      label: "Phiên bản",
       filterType: "text",
+      placeholder: "Tìm kiếm theo phiên bản thiết bị...",
     },
     size: 150,
   },
@@ -90,6 +92,7 @@ const createColumns = (
     enableColumnFilter: true,
     meta: {
       label: "Loại Thiết Bị",
+      placeholder: "Lọc theo loại thiết bị...",
       filterType: "select",
       options: deviceTypes?.map((type) => ({
         label: type.deviceTypeName,
@@ -106,13 +109,15 @@ const createColumns = (
     cell: ({ row }) => {
       const location = row.original.deviceLocation;
       if (!location) return "N/A";
-      return location.rack
-        ? `${location.rack.code} [${location.xPosition},${location.yPosition}]`
-        : `[${location.xPosition},${location.yPosition}]`;
+      return `[${location.xPosition},${location.yPosition}]`;
+      // return location.rack
+      //   ? `${location.rack.code} [${location.xPosition},${location.yPosition}]`
+      //   : `[${location.xPosition},${location.yPosition}]`;
     },
-    enableColumnFilter: true,
+    enableColumnFilter: false,
     meta: {
       label: "Vị Trí",
+      placeholder: "Lọc theo vị trí thiết bị...",
       filterType: "select",
       options: deviceLocations?.map((loc) => ({
         label: loc.rack
@@ -132,10 +137,11 @@ const createColumns = (
       row.getValue("purchaseDate")
         ? dayjs(row.getValue("purchaseDate")).format("DD/MM/YYYY")
         : "N/A",
-    enableColumnFilter: true,
+    enableColumnFilter: false,
     meta: {
       filterType: "date",
       label: "Ngày Mua",
+      placeholder: "Lọc theo ngày mua...",
     },
     size: 150,
   },
@@ -150,8 +156,8 @@ const createColumns = (
       const badgeColor = {
         [EDeviceStatus.AVAILABLE]: "success",
         [EDeviceStatus.ON_LOAN]: "default",
-        [EDeviceStatus.UNDER_WARRANTY]: "warning",
-        [EDeviceStatus.BROKEN]: "destructive",
+        // [EDeviceStatus.UNDER_WARRANTY]: "warning",
+        // [EDeviceStatus.BROKEN]: "destructive",
         [EDeviceStatus.MAINTENANCE]: "secondary",
       };
       const color = badgeColor[status as EDeviceStatus] || "gray";
@@ -175,13 +181,14 @@ const createColumns = (
     enableColumnFilter: true,
     meta: {
       label: "Trạng Thái",
+      placeholder: "Lọc theo trạng thái...",
       filterType: "select",
       options: [
-        { label: "Hoạt Động", value: 1 },
-        { label: "Đang Mượn", value: 2 },
-        { label: "Đang Bảo Hành", value: 3 },
-        { label: "Hỏng", value: 4 },
-        { label: "Đang Bảo Trì", value: 5 },
+        { label: "Đã nhập kho", value: 1 },
+        { label: "Đang mượn", value: 2 },
+        // { label: "Đang Bảo Hành", value: 3 },
+        // { label: "Hỏng", value: 4 },
+        { label: "Đang bảo trì", value: 5 },
       ],
     },
     size: 150,
@@ -193,7 +200,7 @@ const createColumns = (
     ),
     cell: ({ row }) =>
       dayjs(row.getValue("createdAt")).format("DD/MM/YYYY HH:mm:ss"),
-    enableColumnFilter: true,
+    enableColumnFilter: false,
     meta: {
       filterType: "date",
       label: "Ngày Tạo",
@@ -313,9 +320,9 @@ export default function DevicePage() {
       },
       {
         name: "model",
-        label: "Mẫu",
+        label: "Phiên bản",
         type: "text",
-        placeholder: "Nhập mẫu thiết bị",
+        placeholder: "Nhập phiên bản thiết bị",
       },
       {
         name: "deviceTypeId",
@@ -351,12 +358,6 @@ export default function DevicePage() {
         label: "Ghi Chú",
         type: "textarea",
         placeholder: "Nhập các ghi chú thêm",
-      },
-      {
-        name: "status",
-        label: "Trạng Thái Hoạt Động",
-        type: "checkbox",
-        description: "Thiết bị có hoạt động không?",
       },
     ];
   }, [deviceTypes]);

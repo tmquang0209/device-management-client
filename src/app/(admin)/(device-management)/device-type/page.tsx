@@ -4,7 +4,6 @@ import { DynamicModal } from "@/components/dynamic-modal";
 import { IFormFieldConfig } from "@/components/dynamic-modal/types";
 import { DataTable } from "@/components/table/data-table";
 import { DataTableColumnHeader } from "@/components/table/data-table-column-header";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -22,7 +21,6 @@ import {
 } from "@/shared/schema/admin/device-type.schema";
 import { useQueryClient } from "@tanstack/react-query";
 import { ColumnDef } from "@tanstack/react-table";
-import dayjs from "dayjs";
 import { MoreHorizontal, Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -54,42 +52,6 @@ const createColumns = (): ColumnDef<IDeviceType>[] => [
       filterType: "text",
     },
     size: 300,
-  },
-  {
-    accessorKey: "status",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Trạng Thái" />
-    ),
-    cell: ({ row }) =>
-      row.getValue("status") ? (
-        <Badge variant="success">Hoạt Động</Badge>
-      ) : (
-        <Badge variant="destructive">Không Hoạt Động</Badge>
-      ),
-    enableColumnFilter: true,
-    meta: {
-      label: "Trạng Thái",
-      filterType: "select",
-      options: [
-        { label: "Hoạt Động", value: 1 },
-        { label: "Không Hoạt Động", value: 0 },
-      ],
-    },
-    size: 120,
-  },
-  {
-    accessorKey: "createdAt",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Ngày Tạo" />
-    ),
-    cell: ({ row }) =>
-      dayjs(row.getValue("createdAt")).format("DD/MM/YYYY HH:mm:ss"),
-    enableColumnFilter: true,
-    meta: {
-      filterType: "date",
-      label: "Ngày Tạo",
-    },
-    size: 180,
   },
 ];
 
