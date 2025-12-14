@@ -65,7 +65,6 @@ const createColumns = (): ColumnDef<IPartner>[] => [
       const type = row.getValue("partnerType");
       const typeMap: Record<number, string> = {
         1: "Khách Hàng",
-        2: "Nhà Cung Cấp",
         3: "Đối Tác",
       };
       return typeMap[type as number] || type;
@@ -76,7 +75,6 @@ const createColumns = (): ColumnDef<IPartner>[] => [
       filterType: "select",
       options: [
         { label: "Khách Hàng", value: 1 },
-        { label: "Nhà Cung Cấp", value: 2 },
         { label: "Đối Tác", value: 3 },
       ],
     },
@@ -207,7 +205,6 @@ export default function PartnerPage() {
         placeholder: "Chọn loại đối tác",
         options: [
           { label: "Khách Hàng", value: "1" },
-          { label: "Nhà Cung Cấp", value: "2" },
           { label: "Đối Tác", value: "3" },
         ],
         description: "Phân loại đối tác",
