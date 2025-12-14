@@ -498,14 +498,14 @@ export default function RackDiagramPage() {
             </Button>
             <h1 className="text-2xl font-bold">Sơ Đồ Kệ: {rack.code}</h1>
           </div>
-          <p className="text-muted-foreground ml-10">
+          {/* <p className="text-muted-foreground ml-10">
             {rack.rows} hàng × {rack.cols} cột. Click vào ô để chọn thiết bị
             (Esc để hủy)
-          </p>
-          <p className="text-muted-foreground ml-10 text-sm">
+          </p> */}
+          {/* <p className="text-muted-foreground ml-10 text-sm">
             Vị trí hiện tại: [{cursorPosition.col},
             {rowToLetter(cursorPosition.row)}]
-          </p>
+          </p> */}
         </div>
       </div>
 

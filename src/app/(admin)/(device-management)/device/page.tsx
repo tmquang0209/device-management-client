@@ -298,19 +298,12 @@ export default function DevicePage() {
   }, [typesError]);
 
   const deviceFields = useMemo((): IFormFieldConfig[] => {
-    const typeOptions =
-      deviceTypes?.map((type) => ({
-        label: type.deviceTypeName,
-        value: type.id,
-      })) || [];
-
     return [
       {
         name: "deviceName",
         label: "Tên Thiết Bị",
         type: "text",
         placeholder: "Nhập tên thiết bị",
-        description: "Tên duy nhất cho thiết bị",
       },
       {
         name: "serial",
@@ -327,10 +320,12 @@ export default function DevicePage() {
       {
         name: "deviceTypeId",
         label: "Loại Thiết Bị",
-        type: "select",
+        type: "async-select",
         placeholder: "Chọn loại thiết bị",
-        options: typeOptions,
         className: "w-full",
+        mappingField: "id",
+        transformKey: { label: "deviceTypeName", value: "id" },
+        endpoint: "/device-types",
       },
       {
         name: "supplier",
@@ -360,7 +355,7 @@ export default function DevicePage() {
         placeholder: "Nhập các ghi chú thêm",
       },
     ];
-  }, [deviceTypes]);
+  }, []);
 
   const columns = useMemo(() => createColumns(deviceTypes), [deviceTypes]);
 

@@ -18,7 +18,8 @@ export const createDeviceSchema = z.object({
     .max(100, "Số sê-ri không được vượt quá 100 ký tự")
     .optional(),
   model: z.string().max(100, "Mẫu không được vượt quá 100 ký tự").optional(),
-  deviceTypeId: z.string().min(1, "Vui lòng chọn loại thiết bị"),
+  // deviceTypeId: z.string().min(1, "Vui lòng chọn loại thiết bị"),
+  deviceTypeId: z.any(),
   supplier: z.string().optional(),
   status: z.number().optional(),
   purchaseDate: z.string().or(z.date()).optional().transform(dateTransform),
@@ -46,7 +47,7 @@ export const updateDeviceSchema = z.object({
     .max(100, "Số sê-ri không được vượt quá 100 ký tự")
     .optional(),
   model: z.string().max(100, "Mẫu không được vượt quá 100 ký tự").optional(),
-  deviceTypeId: z.string().min(1, "Vui lòng chọn loại thiết bị"),
+  deviceTypeId: z.any(),
   deviceLocationId: z.string().optional(),
   supplier: z.string().optional(),
   status: z.number().optional(),
