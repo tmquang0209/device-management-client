@@ -199,11 +199,7 @@ export default function ReturnSlipPage() {
     setMounted(true);
   }, []);
 
-  const {
-    data: partners,
-    error: partnersError,
-    isLoading: partnersLoading,
-  } = useQuery({
+  const { data: partners, error: partnersError } = useQuery({
     queryKey: ["partners"],
     queryFn: async (): Promise<IPartner[]> => {
       const response = await api.get<IResponse<IPartner[]>>("/partners");

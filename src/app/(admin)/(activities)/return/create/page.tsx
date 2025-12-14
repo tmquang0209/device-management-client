@@ -441,7 +441,7 @@ export default function CreateReturnSlipPage() {
                             Loại Thiết Bị
                           </p>
                           <p className="text-sm">
-                            {item.device?.deviceType?.name || "N/A"}
+                            {item.device?.deviceType?.deviceTypeName || "N/A"}
                           </p>
                         </div>
                       </div>

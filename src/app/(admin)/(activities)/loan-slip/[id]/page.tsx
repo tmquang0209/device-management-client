@@ -103,13 +103,6 @@ export default function LoanSlipDetailPage() {
     staleTime: 10 * 60 * 1000,
   });
 
-  const onReturnDevice = (deviceId: string, deviceName: string) => {
-    setSelectedDeviceForReturn({ deviceId, deviceName });
-    setReturnStatus("2");
-    setReturnNote("");
-    setReturnDialogOpen(true);
-  };
-
   const handleReturnDevice = async () => {
     if (!loanSlip || !selectedDeviceForReturn) return;
 

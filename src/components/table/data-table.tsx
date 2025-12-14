@@ -114,42 +114,12 @@ interface IDataTableProps<TData, TValue> {
   ) => void;
 }
 
-// Checkbox header component moved outside
-interface CheckboxHeaderProps<TData> {
-  table: ReturnType<typeof useReactTable<TData>>;
-}
-function CheckboxHeader<TData>({
-  table,
-}: Readonly<CheckboxHeaderProps<TData>>) {
-  return (
-    <input
-      type="checkbox"
-      checked={table.getIsAllPageRowsSelected()}
-      onChange={table.getToggleAllPageRowsSelectedHandler()}
-    />
-  );
-}
-
-// Checkbox cell component
-interface CheckboxCellProps<TData> {
-  row: Row<TData>;
-}
-function CheckboxCell<TData>({ row }: Readonly<CheckboxCellProps<TData>>) {
-  return (
-    <input
-      type="checkbox"
-      checked={row.getIsSelected()}
-      onChange={row.getToggleSelectedHandler()}
-    />
-  );
-}
-
 export function DataTable<TData, TValue>({
   columns,
   queryKey,
   queryFn,
   searchColumn = "name",
-  searchPlaceholder = "Search...",
+  searchPlaceholder = "Tìm kiếm...",
   initialFilters = {},
   globalActions,
   columnActions,
@@ -223,17 +193,6 @@ export function DataTable<TData, TValue>({
   const pageCount = Math.ceil(totalRows / pagination.pageSize);
 
   const finalColumns: ColumnDef<TData, TValue>[] = [
-    // {
-    //   id: "select",
-    //   header: (props) => <CheckboxHeader table={props.table} />,
-    //   cell: ({ row }) => <CheckboxCell row={row} />,
-    //   enableHiding: false,
-    //   enablePinning: true,
-    //   enableSorting: false,
-    //   enableColumnFilter: false,
-    //   enableResizing: false,
-    //   size: 40,
-    // },
     ...columns,
     ...(columnActions
       ? [
