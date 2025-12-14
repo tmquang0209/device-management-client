@@ -33,7 +33,15 @@ import { api } from "@/shared/data/api";
 import { ILoanSlip, IParamInfo, IResponse } from "@/shared/interfaces";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
-import { ArrowLeft, Calendar, Hash, Loader2, User, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Calendar,
+  Edit,
+  Hash,
+  Loader2,
+  User,
+  X,
+} from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -267,14 +275,32 @@ export default function LoanSlipDetailPage() {
           <div className="flex items-center gap-2">
             {getStatusBadge(loanSlip.status)}
             {loanSlip.status === 1 && (
-              <Button
-                variant="outline"
-                className="text-orange-600 hover:text-orange-700"
-                onClick={openCancelDialog}
-              >
-                <X className="mr-2 h-4 w-4" />
-                Hủy phiếu
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/loan-slip/${id}/edit`)}
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  Sửa thông tin
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={openCancelDialog}
+                  disabled={isCancelling}
+                >
+                  {isCancelling ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Đang hủy...
+                    </>
+                  ) : (
+                    <>
+                      <X className="mr-2 h-4 w-4" />
+                      Hủy giao dịch
+                    </>
+                  )}
+                </Button>
+              </>
             )}
           </div>
         </div>

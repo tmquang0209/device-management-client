@@ -11,12 +11,8 @@ export const createLoanSlipSchema = z.object({
 export type CreateLoanSlipFormValues = z.infer<typeof createLoanSlipSchema>;
 
 export const updateLoanSlipSchema = z.object({
-  id: z.string(),
   borrowerId: z.string().min(1, "Vui lòng chọn người mượn"),
   loanerId: z.string().min(1, "Vui lòng chọn người cho mượn"),
-  deviceIds: z
-    .array(z.string())
-    .min(1, "Vui lòng chọn ít nhất một thiết bị để mượn"),
 });
 
 export type UpdateLoanSlipFormValues = z.infer<typeof updateLoanSlipSchema>;
