@@ -19,7 +19,7 @@ export const createUserSchema = z.object({
     .min(3, "Username must be at least 3 characters")
     .max(50, "Username must be less than 50 characters")
     .optional(),
-  roleType: z.enum(["ADMIN", "STAFF", "USER"]).optional(),
+  roleType: z.string().optional(),
   status: z.boolean().optional().default(true),
   partnerId: z.string().uuid("Invalid partner ID").optional().nullable(),
 });
@@ -45,7 +45,7 @@ export const updateUserSchema = z.object({
     .min(3, "Username must be at least 3 characters")
     .max(50, "Username must be less than 50 characters")
     .optional(),
-  roleType: z.enum(["ADMIN", "STAFF", "USER"]).optional(),
+  roleType: z.string().optional(),
   status: z.boolean().optional(),
   partnerId: z.string().uuid("Invalid partner ID").optional().nullable(),
 });

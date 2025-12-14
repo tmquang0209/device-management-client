@@ -3,7 +3,7 @@ import {
   IMaintenanceSlipDevice,
 } from "./maintenance-slip.interface";
 import { IPaginationRequest } from "./pagination.interface";
-import { IPartner } from "./partner.interface";
+import { IPartner, IPartnerUser } from "./partner.interface";
 
 /**
  * Maintenance Return Slip Status Enum
@@ -98,4 +98,5 @@ export interface IAvailableMaintenanceSlip {
   status: number;
   partner?: IPartner;
   createdAt: Date;
+  createdByUser: IPartnerUser
 }

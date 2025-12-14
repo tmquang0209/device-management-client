@@ -17,6 +17,7 @@ import {
 import { api } from "@/shared/data/api";
 import {
   IPaginatedResponse,
+  IParamInfo,
   IUserInfo,
   IUserUpdate,
 } from "@/shared/interfaces";
@@ -24,14 +25,16 @@ import {
   createUserSchema,
   updateUserSchema,
 } from "@/shared/schema/admin/user.schema";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ColumnDef } from "@tanstack/react-table";
 import dayjs from "dayjs";
 import { MoreHorizontal, Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-const createColumns = (): ColumnDef<IUserInfo>[] => [
+const createColumns = (
+  roleOptions: { label: string; value: string }[] = [],
+): ColumnDef<IUserInfo>[] => [
   {
     accessorKey: "name",
     header: ({ column }) => (
@@ -83,32 +86,28 @@ const createColumns = (): ColumnDef<IUserInfo>[] => [
     meta: {
       label: "Loại Vai Trò",
       filterType: "select",
-      options: [
-        { label: "Admin", value: "ADMIN" },
-        { label: "Staff", value: "STAFF" },
-        { label: "User", value: "USER" },
-      ],
+      options: roleOptions,
     },
     size: 150,
   },
   {
     accessorKey: "status",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" />
+      <DataTableColumnHeader column={column} title="Trạng thái" />
     ),
     cell: ({ row }) =>
       row.getValue("status") ? (
-        <Badge variant="success">Active</Badge>
+        <Badge variant="success">Hoạt động</Badge>
       ) : (
-        <Badge variant="destructive">Inactive</Badge>
+        <Badge variant="destructive">Không hoạt động</Badge>
       ),
     enableColumnFilter: true,
     meta: {
-      label: "Status",
+      label: "Trạng thái",
       filterType: "select",
       options: [
-        { label: "Active", value: true },
-        { label: "Inactive", value: false },
+        { label: "Hoạt động", value: true },
+        { label: "Không hoạt động", value: false },
       ],
     },
     enableResizing: true,
@@ -116,21 +115,21 @@ const createColumns = (): ColumnDef<IUserInfo>[] => [
   {
     accessorKey: "createdAt",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Created At" />
+      <DataTableColumnHeader column={column} title="Ngày tạo" />
     ),
     cell: ({ row }) =>
       dayjs(row.getValue("createdAt")).format("DD/MM/YYYY hh:mm:ss"),
     enableColumnFilter: true,
     meta: {
       filterType: "date",
-      label: "Created At",
+      label: "Ngày tạo",
     },
     size: 150,
   },
   {
     accessorKey: "updatedAt",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Updated At" />
+      <DataTableColumnHeader column={column} title="Ngày cập nhật" />
     ),
     cell: ({ row }) =>
       dayjs(row.getValue("updatedAt")).format("DD/MM/YYYY hh:mm:ss"),
@@ -138,7 +137,7 @@ const createColumns = (): ColumnDef<IUserInfo>[] => [
     size: 150,
     meta: {
       filterType: "date",
-      label: "Updated At",
+      label: "Ngày cập nhật",
     },
   },
 ];
@@ -172,9 +171,9 @@ function UserActions(
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => onEdit(row)}>Edit</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onDelete(row)}>
+        {/* <DropdownMenuItem onClick={() => onDelete(row)}>
           Delete
-        </DropdownMenuItem>
+        </DropdownMenuItem> */}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -191,6 +190,22 @@ export default function UserPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Fetch user roles from params API
+  const { data: userRoles = [] } = useQuery({
+    queryKey: ["params", "user_role"],
+    queryFn: async () => {
+      const response = await api.get<IPaginatedResponse<IParamInfo>>(
+        "/params/type/user_role",
+      );
+      console.log("🚀 ~ UserPage ~ response:", response);
+      return response.data.map((role) => ({
+        label: role.value,
+        value: role.code,
+      }));
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
 
   const userFields = useMemo((): IFormFieldConfig[] => {
     const baseFields: IFormFieldConfig[] = [
@@ -232,29 +247,27 @@ export default function UserPage() {
       {
         name: "roleType",
         label: "Loại Vai Trò",
-        type: "select",
+        type: "async-select",
         placeholder: "Chọn loại vai trò",
-        options: [
-          { label: "Admin", value: "ADMIN" },
-          { label: "Staff", value: "STAFF" },
-          { label: "User", value: "USER" },
-        ],
+        endpoint: "/params/type/user_role",
+        transformKey: {
+          value: "code",
+          label: "value",
+        },
         className: "w-full",
       },
       {
         name: "status",
         label: "Trạng Thái Hoạt Động",
         type: "checkbox",
-        description:
-          "Người dùng có hoạt động không? (Active = bật, Inactive = tắt)",
       },
     );
 
     return baseFields;
   }, [type]);
 
-  // Create columns
-  const columns = useMemo(() => createColumns(), []);
+  // Create columns with role options
+  const columns = useMemo(() => createColumns(userRoles), [userRoles]);
 
   const getUsers = async (params: Record<string, unknown>) => {
     const response = await api.get<IPaginatedResponse<IUserInfo>>(

@@ -380,13 +380,21 @@ export default function CreateMaintenanceReturnSlipPage() {
                 <CardTitle>Thông Tin Phiếu Bảo Trì</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                   <div>
                     <p className="text-muted-foreground text-sm">
                       Mã Phiếu Bảo Trì
                     </p>
                     <p className="font-mono font-medium">
                       {selectedMaintenanceSlip.code}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-sm">
+                      Người yêu cầu
+                    </p>
+                    <p className="font-medium">
+                      {selectedMaintenanceSlip?.createdByUser?.name || "N/A"}
                     </p>
                   </div>
                   <div>

@@ -1,5 +1,5 @@
 import { IPaginationRequest } from "@/shared/interfaces";
-import { IPartner } from "./partner.interface";
+import { IPartner, IPartnerUser } from "./partner.interface";
 
 /**
  * Maintenance Slip Status Enum
@@ -61,6 +61,7 @@ export interface IMaintenanceSlipInfo {
   updatedAt: string | Date;
   details?: IMaintenanceSlipDetail[];
   partner?: IPartner;
+  createdByUser?: IPartnerUser;
 }
 
 export interface IMaintenanceSlipCreate {

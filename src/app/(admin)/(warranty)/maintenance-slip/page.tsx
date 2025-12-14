@@ -106,6 +106,16 @@ const createColumns = (
     size: 180,
   },
   {
+    accessorKey: "createdByUser",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Người Tạo" />
+    ),
+    cell: ({ row }) => row.original.createdByUser?.name || "N/A",
+    enableColumnFilter: true,
+    meta: { label: "Người Tạo", filterType: "text" },
+    size: 150,
+  },
+  {
     accessorKey: "partnerId",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Đối Tác Bảo Trì" />

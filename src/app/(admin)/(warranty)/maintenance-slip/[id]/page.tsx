@@ -413,6 +413,23 @@ export default function MaintenanceSlipDetailPage() {
           </div>
 
           <div className="flex items-start gap-3">
+            <div className="rounded-lg bg-purple-50 p-2 dark:bg-purple-900/20">
+              <User className="h-5 w-5 text-purple-600" />
+            </div>
+            <div>
+              <Label className="text-muted-foreground text-sm">
+                Người yêu cầu
+              </Label>
+              <p className="font-medium">
+                {maintenanceSlip?.createdByUser?.name || "Chưa chọn"}
+              </p>
+              <p className="text-muted-foreground text-xs">
+                {maintenanceSlip.createdByUser?.email}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
             <div className="rounded-lg bg-green-50 p-2 dark:bg-green-900/20">
               <User className="h-5 w-5 text-green-600" />
             </div>
@@ -458,7 +475,10 @@ export default function MaintenanceSlipDetailPage() {
           </div>
 
           {maintenanceSlip.reason && (
-            <div className="col-span-2 flex items-start gap-3">
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg bg-red-50 p-2 dark:bg-red-900/20">
+                <Calendar className="h-5 w-5 text-red-600" />
+              </div>
               <div>
                 <Label className="text-muted-foreground text-sm">Lý do</Label>
                 <p className="font-medium">{maintenanceSlip.reason}</p>
