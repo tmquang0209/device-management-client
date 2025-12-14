@@ -22,7 +22,7 @@ export interface ILoanSlipDevice {
   model?: string;
   deviceType?: {
     id: string;
-    name: string;
+    deviceTypeName: string;
   };
 }
 

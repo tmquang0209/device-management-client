@@ -140,9 +140,11 @@ export default function LoanSlipDetailPage() {
       case 1:
         return <Badge variant="default">Đang Mượn</Badge>;
       case 2:
-        return <Badge variant="success">Đã Đóng</Badge>;
+        return <Badge variant="success">Đã Nhập Kho</Badge>;
       case 3:
         return <Badge variant="destructive">Đã Hủy</Badge>;
+      case 4:
+        return <Badge variant="warning">Chưa Hoàn Tất Nhập Kho</Badge>;
       default:
         return <Badge variant="secondary">Không xác định</Badge>;
     }
@@ -353,7 +355,7 @@ export default function LoanSlipDetailPage() {
                     </TableCell>
                     <TableCell>{detail.device?.deviceName || "N/A"}</TableCell>
                     <TableCell>
-                      {detail.device?.deviceType?.name || "N/A"}
+                      {detail.device?.deviceType?.deviceTypeName || "N/A"}
                     </TableCell>
                     <TableCell>{getDeviceStatusBadge(detail.status)}</TableCell>
                     <TableCell className="font-mono text-xs">
