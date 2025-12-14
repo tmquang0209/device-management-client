@@ -95,12 +95,6 @@ export const menuItems: MenuItem[] = [
     label: "Người dùng",
     children: [
       { id: "user-list", icon: Users, label: "Người dùng", href: "/user" },
-      // {
-      //   id: "supplier",
-      //   icon: Building2,
-      //   label: "Nhà cung cấp",
-      //   href: "/supplier",
-      // },
       { id: "partner", icon: Handshake, label: "Đối tượng", href: "/partner" },
     ],
   },
