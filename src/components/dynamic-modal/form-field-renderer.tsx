@@ -21,7 +21,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { Control, FieldValues } from "react-hook-form";
-import { MultiSelect } from "../multi-select";
+import { MultiSelect, MultiSelectOption } from "../multi-select";
 import { Switch } from "../ui/switch";
 import { IFormFieldConfig } from "./types";
 
@@ -91,7 +91,10 @@ export function FormFieldRenderer({
                       </SelectTrigger>
                       <SelectContent>
                         {field.options?.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
+                          <SelectItem
+                            key={option.value}
+                            value={option.value as string}
+                          >
                             {option.label}
                           </SelectItem>
                         ))}
@@ -110,7 +113,7 @@ export function FormFieldRenderer({
 
                   return (
                     <MultiSelect
-                      options={validOptions}
+                      options={validOptions as MultiSelectOption[]}
                       defaultChecked
                       defaultValue={validValue}
                       value={validValue}

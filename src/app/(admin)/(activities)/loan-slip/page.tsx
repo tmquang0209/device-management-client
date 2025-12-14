@@ -291,7 +291,7 @@ export default function LoanSlipPage() {
       const errorMessage =
         partnersError instanceof Error
           ? partnersError.message
-          : "Không thể tải danh sách đối tác";
+          : "Không thể tải danh sách đối tượng";
       toast.error(errorMessage);
     }
   }, [partnersError]);

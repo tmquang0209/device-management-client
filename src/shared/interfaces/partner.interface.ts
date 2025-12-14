@@ -9,6 +9,7 @@ export interface IPartnerUser {
 export interface IPartner {
   id: string;
   partnerType: number;
+  partnerTypeLabel?: string;
   userId?: string;
   status: number;
   user?: IPartnerUser;

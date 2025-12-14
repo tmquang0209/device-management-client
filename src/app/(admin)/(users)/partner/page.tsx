@@ -63,20 +63,15 @@ const createColumns = (): ColumnDef<IPartner>[] => [
     ),
     cell: ({ row }) => {
       const type = row.getValue("partnerType");
-      const typeMap: Record<number, string> = {
-        1: "Khách Hàng",
-        3: "Đối Tác",
-      };
-      return typeMap[type as number] || type;
+      const partnerTypeLabel = row.original.partnerTypeLabel;
+      return partnerTypeLabel || type;
     },
     enableColumnFilter: true,
     meta: {
       label: "Loại Đối Tác",
-      filterType: "select",
-      options: [
-        { label: "Khách Hàng", value: 1 },
-        { label: "Đối Tác", value: 3 },
-      ],
+      filterType: "async-select",
+      asyncEndpoint: "/params/type/PARTNER_TYPE",
+      transformKey: { value: "code", label: "value" },
     },
     size: 150,
   },
@@ -195,31 +190,29 @@ export default function PartnerPage() {
         queryParams: { page: 1, pageSize: 50 },
         transformKey: { value: "id", label: "name" },
         mappingField: "id",
-        description: "Chọn người dùng để liên kết với đối tác",
+        description: "Chọn người dùng để liên kết với đối tượng",
         className: "w-full",
       },
       {
         name: "partnerType",
         label: "Loại Đối Tác",
-        type: "select",
-        placeholder: "Chọn loại đối tác",
-        options: [
-          { label: "Khách Hàng", value: "1" },
-          { label: "Đối Tác", value: "3" },
-        ],
-        description: "Phân loại đối tác",
+        type: "async-select",
+        placeholder: "Chọn loại đối tượng",
+        endpoint: "/params/type/PARTNER_TYPE",
+        transformKey: { value: "code", label: "value" },
+        description: "Phân loại đối tượng",
         className: "w-full",
       },
       {
         name: "status",
         label: "Trạng Thái",
-        type: "select",
+        type: "checkbox",
         placeholder: "Chọn trạng thái",
         options: [
           { label: "Hoạt Động", value: "1" },
           { label: "Không Hoạt Động", value: "0" },
         ],
-        description: "Trạng thái hoạt động của đối tác",
+        description: "Trạng thái hoạt động của đối tượng",
         className: "w-full",
       },
     ];
@@ -265,10 +258,10 @@ export default function PartnerPage() {
       delete: "Xóa Đối Tác",
     } as const;
     const subtitleMap = {
-      create: "Điền thông tin bên dưới để tạo đối tác mới.",
-      edit: "Cập nhật thông tin đối tác.",
-      view: "Xem chi tiết thông tin đối tác.",
-      delete: "Bạn có chắc chắn muốn xóa đối tác này?",
+      create: "Điền thông tin bên dưới để tạo đối tượng mới.",
+      edit: "Cập nhật thông tin đối tượng.",
+      view: "Xem chi tiết thông tin đối tượng.",
+      delete: "Bạn có chắc chắn muốn xóa đối tượng này?",
     } as const;
 
     const base = "/partners" as const;
@@ -299,7 +292,7 @@ export default function PartnerPage() {
     <Card className="bg-white p-6 dark:bg-gray-800">
       <h1 className="text-2xl font-bold">Quản Lý Đối Tác</h1>
       <p className="text-muted-foreground">
-        Quản lý đối tác và thông tin của họ
+        Quản lý đối tượng và thông tin của họ
       </p>
 
       <DataTable<IPartner, unknown>
@@ -307,9 +300,9 @@ export default function PartnerPage() {
         queryKey={["partners"]}
         queryFn={getPartners}
         searchColumn="user.fullName"
-        searchPlaceholder="Tìm kiếm đối tác..."
+        searchPlaceholder="Tìm kiếm đối tượng..."
         initialFilters={{}}
-        emptyMessage="Không tìm thấy đối tác nào."
+        emptyMessage="Không tìm thấy đối tượng nào."
         globalActions={
           <Button onClick={onCreatePartner}>
             <Plus className="h-4 w-4" />

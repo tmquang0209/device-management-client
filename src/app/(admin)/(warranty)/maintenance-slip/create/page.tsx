@@ -336,11 +336,11 @@ export default function CreateMaintenanceSlipPage() {
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="partnerId">Đối tác bảo trì</Label>
+              <Label htmlFor="partnerId">Đối tượng bảo trì</Label>
               <AsyncSelect
                 endpoint="/partners"
                 transformKey={{ label: "user.name", value: "id" }}
-                placeholder="Chọn đối tác bảo trì"
+                placeholder="Chọn đối tượng bảo trì"
                 value={selectedPartner}
                 onChange={(option) => {
                   setSelectedPartner(option);

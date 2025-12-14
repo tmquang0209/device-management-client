@@ -191,11 +191,11 @@ export default function ParamConfigPage() {
       {
         name: "status",
         label: "Trạng Thái",
-        type: "select",
+        type: "checkbox",
         placeholder: "Chọn trạng thái",
         options: [
-          { label: "Hoạt Động", value: "1" },
-          { label: "Không Hoạt Động", value: "0" },
+          { label: "Hoạt Động", value: 1 },
+          { label: "Không Hoạt Động", value: 0 },
         ],
       },
     ];

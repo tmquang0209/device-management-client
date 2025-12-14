@@ -8,7 +8,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Admin Dashboard</h1>
+        <h1 className="text-foreground text-2xl font-bold">Admin Dashboard</h1>
         <p className="text-muted-foreground">
           Overview of your system&apos;s key metrics and controls
         </p>
@@ -19,7 +19,7 @@ export default function Dashboard() {
 
       {/* System Performance Statistics */}
       <div>
-        <h2 className="text-lg font-semibold mb-4 text-foreground">
+        <h2 className="text-foreground mb-4 text-lg font-semibold">
           System Performance
         </h2>
         <SystemStats />
@@ -31,7 +31,7 @@ export default function Dashboard() {
       </div>
 
       {/* System Monitoring and Activities */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Recent System Activities */}
         <RecentActivities />
 
@@ -40,13 +40,13 @@ export default function Dashboard() {
       </div>
 
       {/* Additional Admin Sections */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {/* User Management Quick Links */}
-        <div className="bg-card p-6 rounded-lg shadow-sm border">
-          <h2 className="text-lg font-semibold mb-3 text-foreground">
-            User Management
+        <div className="bg-card rounded-lg border p-6 shadow-sm">
+          <h2 className="text-foreground mb-3 text-lg font-semibold">
+            Quản lý người dùng
           </h2>
-          <p className="text-muted-foreground text-sm mb-4">
+          <p className="text-muted-foreground mb-4 text-sm">
             View and manage all users in the system
           </p>
           <div className="space-y-2">
@@ -66,11 +66,11 @@ export default function Dashboard() {
         </div>
 
         {/* Payment Analytics */}
-        <div className="bg-card p-6 rounded-lg shadow-sm border">
-          <h2 className="text-lg font-semibold mb-3 text-foreground">
+        <div className="bg-card rounded-lg border p-6 shadow-sm">
+          <h2 className="text-foreground mb-3 text-lg font-semibold">
             Payment Analytics
           </h2>
-          <p className="text-muted-foreground text-sm mb-4">
+          <p className="text-muted-foreground mb-4 text-sm">
             Monitor transactions and payment gateway
           </p>
           <div className="space-y-2">
@@ -90,11 +90,11 @@ export default function Dashboard() {
         </div>
 
         {/* Security Overview */}
-        <div className="bg-card p-6 rounded-lg shadow-sm border">
-          <h2 className="text-lg font-semibold mb-3 text-foreground">
+        <div className="bg-card rounded-lg border p-6 shadow-sm">
+          <h2 className="text-foreground mb-3 text-lg font-semibold">
             Security Overview
           </h2>
-          <p className="text-muted-foreground text-sm mb-4">
+          <p className="text-muted-foreground mb-4 text-sm">
             Monitor system security status
           </p>
           <div className="space-y-2">

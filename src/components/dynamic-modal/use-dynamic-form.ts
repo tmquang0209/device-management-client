@@ -92,14 +92,22 @@ export function useDynamicForm<TData = unknown>({
 
                 const nestedObject = (
                   detailsData.data as Record<string, unknown>
-                )[nestedKey] as Record<string, unknown> | undefined;
+                )[nestedKey];
                 const labelKey =
                   field.transformKey?.label || field.mappingField || "name";
 
                 let label: string | number | undefined;
 
-                if (nestedObject && labelKey in nestedObject) {
-                  label = nestedObject[labelKey] as string | number | undefined;
+                // Only check labelKey in nestedObject if it's actually an object (not a primitive)
+                if (
+                  nestedObject &&
+                  typeof nestedObject === "object" &&
+                  nestedObject !== null &&
+                  labelKey in nestedObject
+                ) {
+                  label = (nestedObject as Record<string, unknown>)[
+                    labelKey
+                  ] as string | number | undefined;
                 }
 
                 if (rawValue !== undefined && rawValue !== null) {

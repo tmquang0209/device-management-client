@@ -21,7 +21,6 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormItem,
   FormLabel,
   FormMessage,
@@ -39,6 +38,7 @@ import { api } from "@/shared/data/api";
 import { IDevice, IResponse } from "@/shared/interfaces";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import dayjs from "dayjs";
 import { ArrowLeft, Minus, MoreVertical, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -359,13 +359,10 @@ export default function CreateLoanSlipPage() {
                   <Input
                     id="code"
                     {...form.register("code")}
-                    placeholder="Tự động tạo"
+                    placeholder={`GDXM_${dayjs().format("DDMMYY")}_XXX`}
                     disabled
                   />
                 </FormControl>
-                <FormDescription>
-                  Mã sẽ được tự động tạo khi lưu.
-                </FormDescription>
                 <FormMessage />
               </FormItem>
 

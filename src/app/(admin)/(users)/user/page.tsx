@@ -319,9 +319,11 @@ export default function UserPage() {
   if (!mounted) {
     return (
       <Card className="bg-white p-6 dark:bg-gray-800">
-        <h1 className="text-2xl font-bold">User Management</h1>
+        <h1 className="text-foreground text-2xl font-bold">
+          Quản lý người dùng
+        </h1>
         <p className="text-muted-foreground">
-          Manage users and their information
+          Quản lý người dùng và thông tin của họ
         </p>
         <div className="flex h-64 items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" />
@@ -332,9 +334,9 @@ export default function UserPage() {
 
   return (
     <Card className="bg-white p-6 dark:bg-gray-800">
-      <h1 className="text-2xl font-bold">User Management</h1>
+      <h1 className="text-2xl font-bold">Quản lý người dùng</h1>
       <p className="text-muted-foreground">
-        Manage users and their information
+        Quản lý người dùng và thông tin của họ
       </p>
 
       <DataTable<IUserInfo, unknown>

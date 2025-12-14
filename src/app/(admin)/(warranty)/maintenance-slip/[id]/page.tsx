@@ -418,7 +418,7 @@ export default function MaintenanceSlipDetailPage() {
             </div>
             <div>
               <Label className="text-muted-foreground text-sm">
-                Đối tác bảo trì
+                Đối tượng bảo trì
               </Label>
               <p className="font-medium">
                 {maintenanceSlip.partner?.user?.name || "Chưa chọn"}

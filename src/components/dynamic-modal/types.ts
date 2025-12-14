@@ -19,7 +19,7 @@ export interface IFormFieldConfig {
     | "async-select";
   placeholder?: string;
   description?: string;
-  options?: { label: string; value: string }[];
+  options?: { label: string; value: string | number }[];
   disabled?: boolean;
   mappingField?: string; // New field for mapping in multiselect/ select
   className?: string; // Add className support for custom styling
