@@ -1,16 +1,15 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useTheme } from "@/shared/context/theme.context";
-import { Moon, Search, Sun } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 
 export default function AdminHeader() {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <header className="bg-background border-b border-border px-6 py-4">
-      <div className="flex items-center justify-between">
+    <header className="bg-background border-border border-b px-6 py-4">
+      <div className="flex items-center justify-end">
         {/* Search */}
         {/* <div className="flex items-center gap-4 flex-1 max-w-md">
           <div className="relative flex-1">
