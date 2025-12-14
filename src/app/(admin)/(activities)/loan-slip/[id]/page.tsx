@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/shared/data/api";
-import { ILoanSlip, IResponse } from "@/shared/interfaces";
+import { ILoanSlip, IParamInfo, IResponse } from "@/shared/interfaces";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { ArrowLeft, Calendar, Hash, Loader2, User, X } from "lucide-react";
@@ -67,6 +67,32 @@ export default function LoanSlipDetailPage() {
       return response.data as ILoanSlip;
     },
     enabled: !!id,
+  });
+
+  // Query loan slip status list from param
+  const { data: loanSlipStatusList } = useQuery({
+    queryKey: ["loan-slip-status"],
+    queryFn: async (): Promise<IParamInfo[]> => {
+      const response = await api.get<IResponse<IParamInfo[]>>(
+        "/loan-slips/config/status",
+      );
+      return response.data || [];
+    },
+    refetchOnWindowFocus: false,
+    staleTime: 10 * 60 * 1000,
+  });
+
+  // Query loan slip detail status list from param
+  const { data: loanSlipDetailStatusList } = useQuery({
+    queryKey: ["loan-slip-detail-status"],
+    queryFn: async (): Promise<IParamInfo[]> => {
+      const response = await api.get<IResponse<IParamInfo[]>>(
+        "/loan-slips/config/detail-status",
+      );
+      return response.data || [];
+    },
+    refetchOnWindowFocus: false,
+    staleTime: 10 * 60 * 1000,
   });
 
   const onReturnDevice = (deviceId: string, deviceName: string) => {
@@ -136,31 +162,55 @@ export default function LoanSlipDetailPage() {
   };
 
   const getStatusBadge = (status: number) => {
-    switch (status) {
-      case 1:
-        return <Badge variant="default">Đang Mượn</Badge>;
-      case 2:
-        return <Badge variant="success">Đã Nhập Kho</Badge>;
-      case 3:
-        return <Badge variant="destructive">Đã Hủy</Badge>;
-      case 4:
-        return <Badge variant="warning">Chưa Hoàn Tất Nhập Kho</Badge>;
-      default:
-        return <Badge variant="secondary">Không xác định</Badge>;
+    const statusInfo = loanSlipStatusList?.find(
+      (s) => s.code === String(status),
+    );
+    if (!statusInfo) {
+      return <Badge variant="secondary">Không xác định</Badge>;
     }
+    // Map status code to badge variant
+    const getVariant = (code: string) => {
+      switch (code) {
+        case "1":
+          return "default";
+        case "2":
+          return "success";
+        case "3":
+          return "destructive";
+        case "4":
+          return "warning";
+        default:
+          return "secondary";
+      }
+    };
+    return (
+      <Badge variant={getVariant(statusInfo.code)}>{statusInfo.value}</Badge>
+    );
   };
 
   const getDeviceStatusBadge = (status: number) => {
-    switch (status) {
-      case 1:
-        return <Badge variant="default">Đã mượn</Badge>;
-      case 2:
-        return <Badge variant="success">Đã trả</Badge>;
-      case 3:
-        return <Badge variant="destructive">Hỏng</Badge>;
-      default:
-        return <Badge variant="secondary">Không xác định</Badge>;
+    const statusInfo = loanSlipDetailStatusList?.find(
+      (s) => s.code === String(status),
+    );
+    if (!statusInfo) {
+      return <Badge variant="secondary">Không xác định</Badge>;
     }
+    // Map status code to badge variant
+    const getVariant = (code: string) => {
+      switch (code) {
+        case "1":
+          return "default";
+        case "2":
+          return "success";
+        case "3":
+          return "destructive";
+        default:
+          return "secondary";
+      }
+    };
+    return (
+      <Badge variant={getVariant(statusInfo.code)}>{statusInfo.value}</Badge>
+    );
   };
 
   if (isLoading) {
@@ -409,8 +459,13 @@ export default function LoanSlipDetailPage() {
                   <SelectValue placeholder="Chọn trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="2">Đã trả (nguyên vẹn)</SelectItem>
-                  <SelectItem value="3">Đã trả (hỏng)</SelectItem>
+                  {loanSlipDetailStatusList
+                    ?.filter((s) => s.code === "2" || s.code === "3")
+                    .map((status) => (
+                      <SelectItem key={status.code} value={status.code}>
+                        {status.value}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>

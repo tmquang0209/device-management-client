@@ -19,6 +19,7 @@ import {
   IDevice,
   ILoanSlip,
   IPaginatedResponse,
+  IParamInfo,
   IPartner,
   IResponse,
 } from "@/shared/interfaces";
@@ -38,6 +39,7 @@ const createColumns = (
   partners?: IPartner[],
   devices?: IDevice[],
   onViewDetails?: (loanSlip: ILoanSlip) => void,
+  statusList?: IParamInfo[],
 ): ColumnDef<ILoanSlip>[] => [
   {
     accessorKey: "code",
@@ -102,27 +104,38 @@ const createColumns = (
     ),
     cell: ({ row }) => {
       const status = row.getValue("status");
-      if (status === 1) {
-        return <Badge variant="default">Đang Mượn</Badge>;
-      } else if (status === 2) {
-        return <Badge variant="success">Đã Nhập Kho</Badge>;
-      } else if (status === 3) {
-        return <Badge variant="destructive">Đã Hủy</Badge>;
-      } else if (status === 4) {
-        return <Badge variant="warning">Chưa Hoàn Tất Nhập Kho</Badge>;
+      const statusInfo = statusList?.find((s) => s.code === String(status));
+      if (!statusInfo) {
+        return <Badge variant="secondary">Không xác định</Badge>;
       }
-      return <Badge variant="secondary">Không xác định</Badge>;
+      // Map status code to badge variant
+      const getVariant = (code: string) => {
+        switch (code) {
+          case "1":
+            return "default";
+          case "2":
+            return "success";
+          case "3":
+            return "destructive";
+          case "4":
+            return "warning";
+          default:
+            return "secondary";
+        }
+      };
+      return (
+        <Badge variant={getVariant(statusInfo.code)}>{statusInfo.value}</Badge>
+      );
     },
     enableColumnFilter: true,
     meta: {
       label: "Trạng Thái",
       filterType: "select",
-      options: [
-        { label: "Đang Mượn", value: 1 },
-        { label: "Đã Nhập Kho", value: 2 },
-        { label: "Đã Hủy", value: 3 },
-        { label: "Chưa Hoàn Tất Nhập Kho", value: 4 },
-      ],
+      options:
+        statusList?.map((s) => ({
+          label: s.value,
+          value: Number(s.code),
+        })) || [],
     },
     size: 170,
   },
@@ -259,6 +272,20 @@ export default function LoanSlipPage() {
     enabled: mounted,
   });
 
+  // Query loan slip status list from param
+  const { data: loanSlipStatusList } = useQuery({
+    queryKey: ["loan-slip-status"],
+    queryFn: async (): Promise<IParamInfo[]> => {
+      const response = await api.get<IResponse<IParamInfo[]>>(
+        "/loan-slips/config/status",
+      );
+      return response.data || [];
+    },
+    refetchOnWindowFocus: false,
+    staleTime: 10 * 60 * 1000, // Cache for 10 minutes
+    enabled: mounted,
+  });
+
   useEffect(() => {
     if (partnersError) {
       const errorMessage =
@@ -325,10 +352,15 @@ export default function LoanSlipPage() {
 
   const columns = useMemo(
     () =>
-      createColumns(partners, devices, (loanSlip) => {
-        router.push(`/loan-slip/${loanSlip.id}`);
-      }),
-    [partners, devices, router],
+      createColumns(
+        partners,
+        devices,
+        (loanSlip) => {
+          router.push(`/loan-slip/${loanSlip.id}`);
+        },
+        loanSlipStatusList,
+      ),
+    [partners, devices, router, loanSlipStatusList],
   );
 
   const getLoanSlips = async (params: Record<string, unknown>) => {
