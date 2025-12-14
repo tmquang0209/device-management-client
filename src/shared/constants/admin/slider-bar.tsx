@@ -58,7 +58,7 @@ export const menuItems: MenuItem[] = [
   {
     id: "activities",
     icon: CreditCard,
-    label: "Giao dịch mượn - Hoàn trả",
+    label: "Giao dịch mượn - trả",
     children: [
       {
         id: "loan-slip",
@@ -66,7 +66,7 @@ export const menuItems: MenuItem[] = [
         label: "Giao dịch mượn",
         href: "/loan-slip",
       },
-      { id: "return", icon: RotateCw, label: "Hoàn trả", href: "/return" },
+      { id: "return", icon: RotateCw, label: "Giao dịch trả", href: "/return" },
       // { id: "history", icon: Clock, label: "Lịch sử", href: "/history" },
     ],
   },
@@ -102,7 +102,7 @@ export const menuItems: MenuItem[] = [
       //   label: "Nhà cung cấp",
       //   href: "/supplier",
       // },
-      { id: "partner", icon: Handshake, label: "Đối tác", href: "/partner" },
+      { id: "partner", icon: Handshake, label: "Đối tượng", href: "/partner" },
     ],
   },
   {
