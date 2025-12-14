@@ -62,9 +62,6 @@ export default function EditLoanSlipPage() {
   const [borrowerValue, setBorrowerValue] = useState<AsyncSelectOption | null>(
     null,
   );
-  const [loanerValue, setLoanerValue] = useState<AsyncSelectOption | null>(
-    null,
-  );
 
   const loanSlipId = params.id as string;
 
@@ -76,7 +73,6 @@ export default function EditLoanSlipPage() {
     resolver: zodResolver(updateLoanSlipSchema),
     defaultValues: {
       borrowerId: "",
-      loanerId: "",
     },
   });
 
@@ -122,17 +118,8 @@ export default function EditLoanSlipPage() {
         });
       }
 
-      // Set loaner value for async select
-      if (loanSlip.loaner) {
-        setLoanerValue({
-          label: loanSlip.loaner.user?.name || `Partner ${loanSlip.loaner.id}`,
-          value: loanSlip.equipmentLoanerId,
-        });
-      }
-
       form.reset({
         borrowerId: loanSlip.equipmentBorrowerId,
-        loanerId: loanSlip.equipmentLoanerId,
       });
     }
   }, [loanSlip, form]);
@@ -152,7 +139,6 @@ export default function EditLoanSlipPage() {
     try {
       await api.put<IResponse<ILoanSlip>>(`/loan-slips/${loanSlipId}`, {
         borrowerId: data.borrowerId,
-        loanerId: data.loanerId,
       });
       toast.success("Cập nhật phiếu mượn thành công");
       queryClient.invalidateQueries({
@@ -281,31 +267,6 @@ export default function EditLoanSlipPage() {
                         value={borrowerValue}
                         onChange={(option) => {
                           setBorrowerValue(option);
-                          field.onChange(option?.value?.toString() || "");
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Loaner Selection */}
-              <FormField
-                control={form.control}
-                name="loanerId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Người Tạo *</FormLabel>
-                    <FormControl>
-                      <AsyncSelect
-                        endpoint="/partners"
-                        transformKey={{ label: "user.name", value: "id" }}
-                        searchKey="user.name"
-                        placeholder="Tìm và chọn người tạo..."
-                        value={loanerValue}
-                        onChange={(option) => {
-                          setLoanerValue(option);
                           field.onChange(option?.value?.toString() || "");
                         }}
                       />

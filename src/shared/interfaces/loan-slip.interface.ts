@@ -1,5 +1,5 @@
 import { IPaginationRequest } from "./pagination.interface";
-import { IPartner } from "./partner.interface";
+import { IPartner, IPartnerUser } from "./partner.interface";
 
 /**
  * Loan Slip Status Enum
@@ -41,7 +41,6 @@ export interface ILoanSlipDetail {
 
 export interface ILoanSlipBase {
   borrowerId: string;
-  loanerId: string;
   deviceIds: string[];
 }
 
@@ -55,18 +54,12 @@ export interface ILoanSlip {
   id: string;
   code: string;
   equipmentBorrowerId: string;
-  equipmentLoanerId: string;
   status: ELoanSlipStatus; // 1: BORROWING, 2: CLOSED, 3: CANCELLED, 4: PARTIAL_RETURNED
   totalReturned?: number; // Tổng số thiết bị đã trả
   details?: ILoanSlipDetail[];
   borrower?: IPartner;
-  loaner?: {
-    id: string;
-    name: string;
-    userName: string;
-    email?: string;
-  };
   createdAt: Date;
+  createdByUser: IPartnerUser;
   updatedAt: Date;
 }
 
@@ -82,6 +75,5 @@ export interface IReturnLoanSlip {
 
 export interface ILoanSlipListRequest extends IPaginationRequest {
   borrowerId?: string;
-  loanerId?: string;
   status?: number;
 }

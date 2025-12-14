@@ -343,10 +343,10 @@ export default function LoanSlipDetailPage() {
                 Người cho mượn
               </Label>
               <p className="font-medium">
-                {loanSlip.loaner?.user?.name || "N/A"}
+                {loanSlip.createdByUser?.name || "N/A"}
               </p>
               <p className="text-muted-foreground text-xs">
-                {loanSlip.loaner?.user?.email}
+                {loanSlip.createdByUser?.email}
               </p>
             </div>
           </div>

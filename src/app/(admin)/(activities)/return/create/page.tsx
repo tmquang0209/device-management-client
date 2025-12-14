@@ -355,7 +355,7 @@ export default function CreateReturnSlipPage() {
                       Người Cho Mượn
                     </p>
                     <p className="font-medium">
-                      {selectedLoanSlip.loaner?.user?.name || "N/A"}
+                      {selectedLoanSlip.createdByUser?.name || "N/A"}
                     </p>
                   </div>
                 </div>

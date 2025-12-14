@@ -82,11 +82,11 @@ const createColumns = (
     size: 200,
   },
   {
-    accessorKey: "equipmentLoanerId",
+    accessorKey: "createdByUser",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Người tạo" />
     ),
-    cell: ({ row }) => row.original.loaner?.name || "N/A",
+    cell: ({ row }) => row.original.createdByUser?.name || "N/A",
     enableColumnFilter: true,
     meta: {
       label: "Người tạo",
@@ -367,17 +367,6 @@ export default function LoanSlipPage() {
         endpoint: "/partners",
         queryParams: { page: 1, pageSize: 50 },
         transformKey: { value: "id", label: "partnerType" },
-        mappingField: "id",
-        className: "w-full",
-      },
-      {
-        name: "loanerId",
-        label: "Người tạo",
-        type: "async-select",
-        placeholder: "Chọn Người tạo",
-        endpoint: "/users/get-list",
-        queryParams: { page: 1, pageSize: 50 },
-        transformKey: { value: "id", label: "name" },
         mappingField: "id",
         className: "w-full",
       },

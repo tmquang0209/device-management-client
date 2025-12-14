@@ -338,7 +338,7 @@ export default function CreateMaintenanceSlipPage() {
             <div className="space-y-2">
               <Label htmlFor="partnerId">Đối tượng bảo trì</Label>
               <AsyncSelect
-                endpoint="/partners"
+                endpoint="/partners?partnerType=1"
                 transformKey={{ label: "user.name", value: "id" }}
                 placeholder="Chọn đối tượng bảo trì"
                 value={selectedPartner}

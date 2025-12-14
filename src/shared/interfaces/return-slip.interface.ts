@@ -98,5 +98,4 @@ export interface IAvailableLoanSlip {
   code: string;
   status: number;
   borrower?: IPartner;
-  loaner?: IPartner;
 }

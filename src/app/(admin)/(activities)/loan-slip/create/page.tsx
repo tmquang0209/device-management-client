@@ -70,7 +70,6 @@ export default function CreateLoanSlipPage() {
   const loanSlipSchema = z.object({
     code: z.string().optional(),
     borrowerId: z.string().min(1, "Vui lòng chọn người mượn"),
-    loanerId: z.string().min(1, "Vui lòng chọn người cho mượn"),
     note: z.string().optional(),
   });
 
@@ -81,13 +80,10 @@ export default function CreateLoanSlipPage() {
     defaultValues: {
       code: "",
       borrowerId: "",
-      loanerId: "",
       note: "",
     },
   });
   const [selectedBorrower, setSelectedBorrower] =
-    useState<AsyncSelectOption | null>(null);
-  const [selectedLoaner, setSelectedLoaner] =
     useState<AsyncSelectOption | null>(null);
   const [devices, setDevices] = useState<LoanSlipDevice[]>([]);
   const [deviceTypeFilters, setDeviceTypeFilters] = useState<
@@ -299,7 +295,6 @@ export default function CreateLoanSlipPage() {
     try {
       await api.post("/loan-slips", {
         borrowerId: values.borrowerId,
-        loanerId: values.loanerId,
         deviceIds: devices.map((d) => d.deviceId),
       });
       toast.success("Tạo phiếu mượn thành công");
@@ -378,26 +373,6 @@ export default function CreateLoanSlipPage() {
                       setSelectedBorrower(option);
                       form.setValue(
                         "borrowerId",
-                        option ? String(option.value) : "",
-                      );
-                    }}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-
-              <FormItem>
-                <FormLabel htmlFor="loanerId">Người cho mượn *</FormLabel>
-                <FormControl>
-                  <AsyncSelect
-                    endpoint="/users/get-list"
-                    transformKey={{ label: "name", value: "id" }}
-                    placeholder="Chọn người cho mượn"
-                    value={selectedLoaner}
-                    onChange={(option) => {
-                      setSelectedLoaner(option);
-                      form.setValue(
-                        "loanerId",
                         option ? String(option.value) : "",
                       );
                     }}
