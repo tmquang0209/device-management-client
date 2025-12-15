@@ -32,7 +32,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/shared/data/api";
 import { IDevice, IResponse } from "@/shared/interfaces";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, MoreVertical, Plus } from "lucide-react";
+import { ArrowLeft, Expand, MoreVertical, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -60,7 +60,7 @@ export default function CreateMaintenanceSlipPage() {
     useState<AsyncSelectOption | null>(null);
   const [devices, setDevices] = useState<MaintenanceSlipDevice[]>([]);
 
-  // New state for device selection
+  // State for device selection
   const [selectedDeviceType, setSelectedDeviceType] =
     useState<AsyncSelectOption | null>(null);
   const [selectedDevice, setSelectedDevice] =
@@ -74,6 +74,13 @@ export default function CreateMaintenanceSlipPage() {
     useState<MaintenanceSlipDevice | null>(null);
   const [swapCandidates, setSwapCandidates] = useState<IDevice[]>([]);
   const [loadingSwapCandidates, setLoadingSwapCandidates] = useState(false);
+
+  // New state for expand modal
+  const [expandDialogOpen, setExpandDialogOpen] = useState(false);
+  const [availableDevicesForExpand, setAvailableDevicesForExpand] = useState<
+    IDevice[]
+  >([]);
+  const [loadingAvailableDevices, setLoadingAvailableDevices] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -93,12 +100,11 @@ export default function CreateMaintenanceSlipPage() {
         {
           params: {
             deviceTypeId: deviceTypeId,
-            quantity: 100, // Get all available devices
+            quantity: 100,
           },
         },
       );
 
-      // Filter out devices that are already added
       const available = (response.data || []).filter(
         (device) => !devices.some((d) => d.deviceId === device.id),
       );
@@ -123,6 +129,61 @@ export default function CreateMaintenanceSlipPage() {
     }
   };
 
+  // Open expand dialog to select devices manually
+  const handleOpenExpandDialog = async () => {
+    if (!selectedDeviceType) {
+      toast.error("Vui lòng chọn loại thiết bị trước");
+      return;
+    }
+
+    setExpandDialogOpen(true);
+    setLoadingAvailableDevices(true);
+
+    try {
+      const response = await api.get<IResponse<IDevice[]>>(
+        "/devices/available-for-loan",
+        {
+          params: {
+            deviceTypeId: selectedDeviceType.value,
+            quantity: 100,
+          },
+        },
+      );
+
+      const available = (response.data || []).filter(
+        (d) => !devices.some((selected) => selected.deviceId === d.id),
+      );
+      setAvailableDevicesForExpand(available);
+    } catch (error) {
+      console.error("Failed to fetch available devices:", error);
+      toast.error("Không thể lấy danh sách thiết bị");
+      setAvailableDevicesForExpand([]);
+    } finally {
+      setLoadingAvailableDevices(false);
+    }
+  };
+
+  // Add device from expand modal
+  const handleAddDeviceFromExpand = (device: IDevice) => {
+    const newDevice: MaintenanceSlipDevice = {
+      id: `temp-${device.id}`,
+      deviceId: device.id,
+      deviceCode: device.serial || device.id.slice(0, 8),
+      deviceName: device.deviceName,
+      deviceType: device.deviceType?.deviceTypeName || "N/A",
+      deviceTypeId: device.deviceType?.id || "",
+      note: "",
+    };
+
+    setDevices([...devices, newDevice]);
+
+    setAvailableDevicesForExpand(
+      availableDevicesForExpand.filter((d) => d.id !== device.id),
+    );
+
+    toast.success(`Đã thêm ${device.deviceName}`);
+  };
+
   // Add selected device to the list
   const handleAddDevice = () => {
     if (!selectedDevice || !selectedDeviceType) {
@@ -138,7 +199,6 @@ export default function CreateMaintenanceSlipPage() {
       return;
     }
 
-    // Check if device already added
     if (devices.some((d) => d.deviceId === deviceData.id)) {
       toast.error("Thiết bị này đã được thêm");
       return;
@@ -155,8 +215,6 @@ export default function CreateMaintenanceSlipPage() {
     };
 
     setDevices([...devices, newDevice]);
-
-    // Reset selection and update available devices
     setSelectedDevice(null);
     setAvailableDevices(availableDevices.filter((d) => d.id !== deviceData.id));
 
@@ -266,8 +324,7 @@ export default function CreateMaintenanceSlipPage() {
       console.error("Failed to create maintenance slip:", error);
       const message =
         error instanceof Error && "response" in error
-          ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (error as any).response?.data?.message
+          ? (error as any).response?.data?.message
           : "Không thể tạo phiếu bảo trì";
       toast.error(message || "Không thể tạo phiếu bảo trì");
     } finally {
@@ -355,7 +412,6 @@ export default function CreateMaintenanceSlipPage() {
 
         {/* Danh sách thiết bị */}
         <div className="space-y-4">
-          {/* Header with title and count badge */}
           <div className="flex items-center gap-4">
             <h3 className="text-lg font-semibold">Danh sách thiết bị</h3>
             <Badge variant="secondary" className="rounded-md px-3 py-1">
@@ -363,11 +419,14 @@ export default function CreateMaintenanceSlipPage() {
             </Badge>
           </div>
 
-          {/* Device selection form */}
-          <div className="rounded-lg border bg-gray-50 p-4 dark:bg-gray-900">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div className="space-y-2">
-                <Label>Loại thiết bị</Label>
+          {/* Device selection form with expand button */}
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
+            <div className="flex items-end gap-3">
+              {/* Device Type Select */}
+              <div className="flex-1">
+                <Label className="mb-2 block text-sm font-medium">
+                  Loại thiết bị
+                </Label>
                 <AsyncSelect
                   endpoint="/device-types"
                   transformKey={{ label: "deviceTypeName", value: "id" }}
@@ -378,8 +437,11 @@ export default function CreateMaintenanceSlipPage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Thiết bị</Label>
+              {/* Device Select */}
+              <div className="flex-1">
+                <Label className="mb-2 block text-sm font-medium">
+                  Thiết bị
+                </Label>
                 <AsyncSelect
                   endpoint="/devices/available-for-loan"
                   transformKey={{ label: "deviceName", value: "id" }}
@@ -403,15 +465,26 @@ export default function CreateMaintenanceSlipPage() {
                 />
               </div>
 
-              <div className="flex items-end">
+              {/* Action buttons */}
+              <div className="flex gap-2">
+                {selectedDeviceType && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleOpenExpandDialog}
+                    className="gap-2"
+                    title="Mở danh sách đầy đủ để chọn"
+                  >
+                    <Expand className="h-4 w-4" />
+                  </Button>
+                )}
                 <Button
                   type="button"
                   onClick={handleAddDevice}
                   disabled={!selectedDevice || !selectedDeviceType}
-                  className="w-full"
                 >
                   <Plus className="mr-2 h-4 w-4" />
-                  Thêm thiết bị
+                  Thêm
                 </Button>
               </div>
             </div>
@@ -507,6 +580,94 @@ export default function CreateMaintenanceSlipPage() {
           </Button>
         </div>
       </form>
+
+      {/* Expand Device Selection Dialog */}
+      <Dialog open={expandDialogOpen} onOpenChange={setExpandDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Chọn thiết bị</DialogTitle>
+            <DialogDescription>
+              Chọn thiết bị từ danh sách có sẵn:{" "}
+              <span className="font-semibold">{selectedDeviceType?.label}</span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="max-h-[500px] overflow-y-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50 dark:bg-gray-800">
+                  <TableHead className="font-semibold">Mã thiết bị</TableHead>
+                  <TableHead className="font-semibold">Tên thiết bị</TableHead>
+                  <TableHead className="font-semibold">Ngày nhập</TableHead>
+                  <TableHead className="w-24 font-semibold">Thao tác</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loadingAvailableDevices ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={4}
+                      className="text-center text-gray-500"
+                    >
+                      <div className="flex items-center justify-center gap-2 py-8">
+                        <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-blue-600" />
+                        Đang tải danh sách thiết bị...
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : availableDevicesForExpand.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={4}
+                      className="py-8 text-center text-gray-500"
+                    >
+                      Không có thiết bị nào khả dụng
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  availableDevicesForExpand.map((device) => (
+                    <TableRow key={device.id}>
+                      <TableCell className="font-mono text-sm text-green-600">
+                        {device.serial || device.id.slice(0, 8)}
+                      </TableCell>
+                      <TableCell>{device.deviceName}</TableCell>
+                      <TableCell className="text-sm text-gray-500">
+                        {device.createdAt
+                          ? new Date(device.createdAt).toLocaleDateString(
+                              "vi-VN",
+                            )
+                          : "N/A"}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => handleAddDeviceFromExpand(device)}
+                        >
+                          Thêm
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setExpandDialogOpen(false);
+                setAvailableDevicesForExpand([]);
+              }}
+            >
+              Đóng
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Swap Device Dialog */}
       <Dialog open={swapDialogOpen} onOpenChange={setSwapDialogOpen}>
