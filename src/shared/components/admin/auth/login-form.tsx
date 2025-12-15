@@ -70,23 +70,26 @@ export function LoginForm() {
       <div className="w-full max-w-md">
         {/* Logo and Header */}
         <div className="mb-8 text-center">
-          <div className="bg-primary mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg">
-            <Shield className="text-primary-foreground h-6 w-6" />
+          <div className="bg-primary mb-4 inline-flex h-14 w-14 items-center justify-center rounded-lg">
+            <Shield className="text-primary-foreground h-7 w-7" />
           </div>
-          <h1 className="text-foreground mb-2 text-2xl font-semibold text-balance">
-            System Admin Dashboard
+          <h1 className="text-foreground mb-2 text-2xl font-bold text-balance">
+            Hệ thống quản lý thiết bị
           </h1>
+          <h2 className="text-foreground mb-1 text-lg font-semibold text-balance">
+            Trường Đại học Thăng Long
+          </h2>
           <p className="text-muted-foreground text-sm">
-            Sign in to access the admin panel
+            Đăng nhập để truy cập hệ thống quản trị
           </p>
         </div>
 
         {/* Login Card */}
         <Card className="border-border shadow-sm">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-xl font-semibold">Sign In</CardTitle>
+            <CardTitle className="text-xl font-semibold">Đăng nhập</CardTitle>
             <CardDescription>
-              Enter your credentials to continue
+              Vui lòng nhập thông tin tài khoản để tiếp tục
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -106,7 +109,7 @@ export function LoginForm() {
                         <Input
                           id="email"
                           type="email"
-                          placeholder="admin@example.com"
+                          placeholder="tennguoidung@thanglong.edu.vn"
                           leftIcon={<Mail className="h-4 w-4" />}
                           disabled={isPending}
                           {...field}
@@ -123,12 +126,12 @@ export function LoginForm() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel>Mật khẩu</FormLabel>
                       <FormControl>
                         <Input
                           id="password"
                           type="password"
-                          placeholder="Enter your password"
+                          placeholder="Nhập mật khẩu"
                           leftIcon={<Lock className="h-4 w-4" />}
                           showPasswordToggle={true}
                           disabled={isPending}
@@ -142,7 +145,7 @@ export function LoginForm() {
 
                 {/* Submit Button */}
                 <Button type="submit" className="w-full" disabled={isPending}>
-                  {isPending ? "Signing in..." : "Sign In"}
+                  {isPending ? "Đang đăng nhập..." : "Đăng nhập"}
                 </Button>
               </form>
             </Form>
@@ -150,7 +153,7 @@ export function LoginForm() {
             {/* Additional Info */}
             <div className="border-border mt-6 border-t pt-6">
               <p className="text-muted-foreground text-center text-xs">
-                Protected by enterprise-grade security
+                Bảo mật bởi hệ thống của Trường Đại học Thăng Long
               </p>
             </div>
           </CardContent>
@@ -158,7 +161,7 @@ export function LoginForm() {
 
         {/* Footer */}
         <p className="text-muted-foreground mt-6 text-center text-xs">
-          Need help? Contact your system administrator
+          Cần hỗ trợ? Liên hệ phòng Quản trị thiết bị hoặc Trung tâm CNTT
         </p>
       </div>
     </div>
