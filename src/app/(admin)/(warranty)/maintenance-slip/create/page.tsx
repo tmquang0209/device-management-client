@@ -324,6 +324,7 @@ export default function CreateMaintenanceSlipPage() {
       console.error("Failed to create maintenance slip:", error);
       const message =
         error instanceof Error && "response" in error
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           ? (error as any).response?.data?.message
           : "Không thể tạo phiếu bảo trì";
       toast.error(message || "Không thể tạo phiếu bảo trì");

@@ -66,7 +66,7 @@ export function ActivityTimeline({
         <ScrollArea className="h-[400px] pr-4">
           <div className="space-y-4">
             {activities && activities.length > 0 ? (
-              activities.map((activity, index) => (
+              activities.map((activity) => (
                 <div
                   key={activity.id}
                   className="flex gap-4 border-b pb-4 last:border-0"

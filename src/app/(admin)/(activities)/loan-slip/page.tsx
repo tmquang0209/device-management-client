@@ -211,11 +211,7 @@ export default function LoanSlipPage() {
     setMounted(true);
   }, []);
 
-  const {
-    data: users,
-    error: usersError,
-    isLoading: usersLoading,
-  } = useQuery({
+  const { data: users, error: usersError } = useQuery({
     queryKey: ["users"],
     queryFn: async (): Promise<IPartnerUser[]> => {
       const response =
