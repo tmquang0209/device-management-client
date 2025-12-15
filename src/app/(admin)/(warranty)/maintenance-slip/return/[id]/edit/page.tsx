@@ -201,7 +201,9 @@ export default function EditMaintenanceReturnSlipPage() {
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Đối Tác Bảo Trì</label>
+                  <label className="text-sm font-medium">
+                    Đối tượng bảo trì
+                  </label>
                   <p className="text-sm">
                     {slip.maintenanceSlip?.partner?.user?.name || "N/A"}
                   </p>

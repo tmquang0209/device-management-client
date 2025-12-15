@@ -271,7 +271,7 @@ export default function MaintenanceReturnSlipDetailPage() {
               )}
             </div>
             <div>
-              <p className="text-muted-foreground text-sm">Đối Tác Bảo Trì</p>
+              <p className="text-muted-foreground text-sm">Đối tượng bảo trì</p>
               <p className="font-medium">
                 {slip.maintenanceSlip?.partner?.user?.name || "N/A"}
               </p>

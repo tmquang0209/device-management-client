@@ -399,7 +399,7 @@ export default function CreateMaintenanceReturnSlipPage() {
                   </div>
                   <div>
                     <p className="text-muted-foreground text-sm">
-                      Đối Tác Bảo Trì
+                      Đối tượng bảo trì
                     </p>
                     <p className="font-medium">
                       {selectedMaintenanceSlip.partner?.user?.name || "N/A"}

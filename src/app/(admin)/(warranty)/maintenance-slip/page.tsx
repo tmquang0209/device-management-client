@@ -118,12 +118,12 @@ const createColumns = (
   {
     accessorKey: "partnerId",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Đối Tác Bảo Trì" />
+      <DataTableColumnHeader column={column} title="Đối tượng bảo trì" />
     ),
     cell: ({ row }) => row.original.partner?.user?.name || "N/A",
     enableColumnFilter: true,
     meta: {
-      label: "Đối Tác Bảo Trì",
+      label: "Đối tượng bảo trì",
       filterType: "select",
       options: partners?.map((partner) => ({
         label: partner.user?.name || `Partner ${partner.id}`,

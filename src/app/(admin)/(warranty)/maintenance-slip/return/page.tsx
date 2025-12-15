@@ -107,7 +107,7 @@ const createColumns = (
   {
     accessorKey: "maintenanceSlip.partner",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Đối Tác Bảo Trì" />
+      <DataTableColumnHeader column={column} title="Đối tượng bảo trì" />
     ),
     cell: ({ row }) =>
       row.original.maintenanceSlip?.partner?.user?.name || "N/A",

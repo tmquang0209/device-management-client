@@ -120,12 +120,6 @@ export default function DeviceTypePage() {
         type: "textarea",
         placeholder: "Nhập mô tả loại thiết bị",
       },
-      {
-        name: "status",
-        label: "Trạng Thái Hoạt Động",
-        type: "checkbox",
-        description: "Loại thiết bị có hoạt động không?",
-      },
     ];
   }, []);
 

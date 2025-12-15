@@ -31,8 +31,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/shared/data/api";
 import { IDevice, IResponse } from "@/shared/interfaces";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Minus, MoreVertical, Plus } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, MoreVertical, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -44,13 +44,7 @@ interface MaintenanceSlipDevice {
   deviceName: string;
   deviceType: string;
   deviceTypeId: string;
-}
-
-interface DeviceTypeFilter {
-  id: string;
-  deviceTypeId: string;
-  deviceTypeName: string;
-  quantity: number;
+  note?: string;
 }
 
 export default function CreateMaintenanceSlipPage() {
@@ -65,9 +59,15 @@ export default function CreateMaintenanceSlipPage() {
   const [selectedPartner, setSelectedPartner] =
     useState<AsyncSelectOption | null>(null);
   const [devices, setDevices] = useState<MaintenanceSlipDevice[]>([]);
-  const [deviceTypeFilters, setDeviceTypeFilters] = useState<
-    DeviceTypeFilter[]
-  >([]);
+
+  // New state for device selection
+  const [selectedDeviceType, setSelectedDeviceType] =
+    useState<AsyncSelectOption | null>(null);
+  const [selectedDevice, setSelectedDevice] =
+    useState<AsyncSelectOption | null>(null);
+  const [availableDevices, setAvailableDevices] = useState<IDevice[]>([]);
+  const [loadingDevices, setLoadingDevices] = useState(false);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [swapDialogOpen, setSwapDialogOpen] = useState(false);
   const [deviceToSwap, setDeviceToSwap] =
@@ -79,118 +79,88 @@ export default function CreateMaintenanceSlipPage() {
     setMounted(true);
   }, []);
 
-  // Mutation to fetch available devices for maintenance by type
-  const fetchAvailableDevicesMutation = useMutation({
-    mutationFn: async (params: { deviceTypeId: string; quantity: number }) => {
+  // Fetch available devices when device type is selected
+  const fetchAvailableDevices = async (deviceTypeId: string) => {
+    if (!deviceTypeId) {
+      setAvailableDevices([]);
+      return;
+    }
+
+    setLoadingDevices(true);
+    try {
       const response = await api.get<IResponse<IDevice[]>>(
         "/devices/available-for-loan",
         {
           params: {
-            deviceTypeId: params.deviceTypeId,
-            quantity: params.quantity,
+            deviceTypeId: deviceTypeId,
+            quantity: 100, // Get all available devices
           },
         },
       );
-      return response.data || [];
-    },
-  });
 
-  // Fetch devices from API when filters change
-  const fetchDevicesFromFilters = async () => {
-    if (deviceTypeFilters.length === 0) {
-      setDevices([]);
-      return;
-    }
-
-    const validFilters = deviceTypeFilters.filter((f) => f.deviceTypeId);
-    if (validFilters.length === 0) {
-      setDevices([]);
-      return;
-    }
-
-    try {
-      const results = await Promise.all(
-        validFilters.map((filter) =>
-          fetchAvailableDevicesMutation.mutateAsync({
-            deviceTypeId: filter.deviceTypeId,
-            quantity: filter.quantity,
-          }),
-        ),
+      // Filter out devices that are already added
+      const available = (response.data || []).filter(
+        (device) => !devices.some((d) => d.deviceId === device.id),
       );
-
-      const allDevices: MaintenanceSlipDevice[] = [];
-      const usedDeviceIds = new Set<string>();
-
-      results.forEach((deviceList) => {
-        deviceList.forEach((device) => {
-          if (!usedDeviceIds.has(device.id)) {
-            usedDeviceIds.add(device.id);
-            allDevices.push({
-              id: `temp-${device.id}`,
-              deviceId: device.id,
-              deviceCode: device.serial || device.id.slice(0, 8),
-              deviceName: device.deviceName,
-              deviceType: device.deviceType?.deviceTypeName || "N/A",
-              deviceTypeId: device.deviceType?.id || "",
-            });
-          }
-        });
-      });
-
-      setDevices(allDevices);
+      setAvailableDevices(available);
     } catch (error) {
       console.error("Failed to fetch available devices:", error);
       toast.error("Không thể lấy danh sách thiết bị");
+      setAvailableDevices([]);
+    } finally {
+      setLoadingDevices(false);
     }
   };
 
-  // Add new device type filter row
-  const handleAddDeviceTypeFilter = () => {
-    setDeviceTypeFilters([
-      ...deviceTypeFilters,
-      {
-        id: `filter-${Date.now()}`,
-        deviceTypeId: "",
-        deviceTypeName: "",
-        quantity: 1,
-      },
-    ]);
+  // Handle device type selection
+  const handleDeviceTypeSelect = (option: AsyncSelectOption | null) => {
+    setSelectedDeviceType(option);
+    setSelectedDevice(null);
+    if (option) {
+      fetchAvailableDevices(String(option.value));
+    } else {
+      setAvailableDevices([]);
+    }
   };
 
-  // Remove device type filter row
-  const handleRemoveDeviceTypeFilter = (id: string) => {
-    setDeviceTypeFilters(deviceTypeFilters.filter((f) => f.id !== id));
-  };
+  // Add selected device to the list
+  const handleAddDevice = () => {
+    if (!selectedDevice || !selectedDeviceType) {
+      toast.error("Vui lòng chọn loại thiết bị và thiết bị");
+      return;
+    }
 
-  // Update device type filter
-  const handleUpdateDeviceTypeFilter = (
-    id: string,
-    field: "deviceTypeId" | "quantity" | "deviceTypeName",
-    value: string | number,
-  ) => {
-    setDeviceTypeFilters(
-      deviceTypeFilters.map((f) =>
-        f.id === id ? { ...f, [field]: value } : f,
-      ),
+    const deviceData = availableDevices.find(
+      (d) => d.id === selectedDevice.value,
     );
-  };
+    if (!deviceData) {
+      toast.error("Không tìm thấy thiết bị");
+      return;
+    }
 
-  // Handle device type selection from AsyncSelect
-  const handleDeviceTypeChange = (
-    filterId: string,
-    option: AsyncSelectOption | null,
-  ) => {
-    setDeviceTypeFilters(
-      deviceTypeFilters.map((f) =>
-        f.id === filterId
-          ? {
-              ...f,
-              deviceTypeId: option ? String(option.value) : "",
-              deviceTypeName: option ? option.label : "",
-            }
-          : f,
-      ),
-    );
+    // Check if device already added
+    if (devices.some((d) => d.deviceId === deviceData.id)) {
+      toast.error("Thiết bị này đã được thêm");
+      return;
+    }
+
+    const newDevice: MaintenanceSlipDevice = {
+      id: `temp-${deviceData.id}`,
+      deviceId: deviceData.id,
+      deviceCode: deviceData.serial || deviceData.id.slice(0, 8),
+      deviceName: deviceData.deviceName,
+      deviceType: deviceData.deviceType?.deviceTypeName || "N/A",
+      deviceTypeId: deviceData.deviceType?.id || "",
+      note: "",
+    };
+
+    setDevices([...devices, newDevice]);
+
+    // Reset selection and update available devices
+    setSelectedDevice(null);
+    setAvailableDevices(availableDevices.filter((d) => d.id !== deviceData.id));
+
+    toast.success("Đã thêm thiết bị");
   };
 
   // Handle swap device - fetch candidates from API
@@ -255,14 +225,12 @@ export default function CreateMaintenanceSlipPage() {
     toast.success("Đổi thiết bị thành công");
   };
 
-  // Update devices when filters change
-  useEffect(() => {
-    fetchDevicesFromFilters();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deviceTypeFilters]);
-
   const handleRemoveDevice = (id: string) => {
     setDevices(devices.filter((d) => d.id !== id));
+  };
+
+  const handleUpdateDeviceNote = (id: string, note: string) => {
+    setDevices(devices.map((d) => (d.id === id ? { ...d, note } : d)));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -280,7 +248,10 @@ export default function CreateMaintenanceSlipPage() {
         partnerId: formData.partnerId || undefined,
         reason: formData.reason || undefined,
         requestDate: formData.requestDate || undefined,
-        deviceIds: devices.map((d) => d.deviceId),
+        devices: devices.map((d) => ({
+          deviceId: d.deviceId,
+          note: d.note || undefined,
+        })),
       });
 
       toast.success("Tạo phiếu bảo trì thành công");
@@ -392,69 +363,59 @@ export default function CreateMaintenanceSlipPage() {
             </Badge>
           </div>
 
-          {/* Add device type button */}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleAddDeviceTypeFilter}
-            className="border-2 border-dashed"
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
-
-          {/* Device type filters */}
-          {deviceTypeFilters.map((filter) => (
-            <div key={filter.id} className="flex items-center gap-4">
-              <div className="w-[250px]">
+          {/* Device selection form */}
+          <div className="rounded-lg border bg-gray-50 p-4 dark:bg-gray-900">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label>Loại thiết bị</Label>
                 <AsyncSelect
                   endpoint="/device-types"
                   transformKey={{ label: "deviceTypeName", value: "id" }}
-                  placeholder="Loại thiết bị"
-                  value={
-                    filter.deviceTypeId
-                      ? {
-                          label: filter.deviceTypeName,
-                          value: filter.deviceTypeId,
-                        }
-                      : null
+                  placeholder="Chọn loại thiết bị"
+                  value={selectedDeviceType}
+                  onChange={handleDeviceTypeSelect}
+                  size="sm"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Thiết bị</Label>
+                <AsyncSelect
+                  endpoint="/devices/available-for-loan"
+                  transformKey={{ label: "deviceName", value: "id" }}
+                  placeholder={
+                    selectedDeviceType
+                      ? "Chọn thiết bị"
+                      : "Chọn loại thiết bị trước"
                   }
-                  onChange={(option) =>
-                    handleDeviceTypeChange(filter.id, option)
+                  value={selectedDevice}
+                  onChange={setSelectedDevice}
+                  disabled={!selectedDeviceType || loadingDevices}
+                  queryParams={
+                    selectedDeviceType
+                      ? {
+                          deviceTypeId: selectedDeviceType.value,
+                          quantity: 100,
+                        }
+                      : undefined
                   }
                   size="sm"
                 />
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">Số lượng:</span>
-                <Input
-                  type="number"
-                  min={1}
-                  max={100}
-                  value={filter.quantity}
-                  placeholder="Nhập số luợng thiết bị"
-                  onChange={(e) =>
-                    handleUpdateDeviceTypeFilter(
-                      filter.id,
-                      "quantity",
-                      parseInt(e.target.value),
-                    )
-                  }
-                  className="w-36"
-                />
+              <div className="flex items-end">
+                <Button
+                  type="button"
+                  onClick={handleAddDevice}
+                  disabled={!selectedDevice || !selectedDeviceType}
+                  className="w-full"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Thêm thiết bị
+                </Button>
               </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleRemoveDeviceTypeFilter(filter.id)}
-              >
-                <Minus className="h-4 w-4" />
-              </Button>
             </div>
-          ))}
+          </div>
 
           {/* Device table */}
           <div className="rounded-md border">
@@ -465,6 +426,7 @@ export default function CreateMaintenanceSlipPage() {
                   <TableHead className="font-semibold">Mã thiết bị</TableHead>
                   <TableHead className="font-semibold">Tên thiết bị</TableHead>
                   <TableHead className="font-semibold">Loại thiết bị</TableHead>
+                  <TableHead className="font-semibold">Ghi chú</TableHead>
                   <TableHead className="w-16"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -472,7 +434,7 @@ export default function CreateMaintenanceSlipPage() {
                 {devices.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={5}
+                      colSpan={6}
                       className="text-center text-gray-500"
                     >
                       Chưa có thiết bị nào được thêm
@@ -489,6 +451,17 @@ export default function CreateMaintenanceSlipPage() {
                       </TableCell>
                       <TableCell>{device.deviceName}</TableCell>
                       <TableCell>{device.deviceType}</TableCell>
+                      <TableCell>
+                        <Input
+                          type="text"
+                          placeholder="Nhập ghi chú..."
+                          value={device.note || ""}
+                          onChange={(e) =>
+                            handleUpdateDeviceNote(device.id, e.target.value)
+                          }
+                          className="w-full"
+                        />
+                      </TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
