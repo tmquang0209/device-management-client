@@ -250,6 +250,7 @@ export default function UserPage() {
         type: "async-select",
         placeholder: "Chọn loại vai trò",
         endpoint: "/params/type/user_role",
+        mappingField: "code",
         transformKey: {
           value: "code",
           label: "value",
