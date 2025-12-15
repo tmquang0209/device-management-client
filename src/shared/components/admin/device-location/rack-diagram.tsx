@@ -28,6 +28,18 @@ import { Save, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+// Helper function to convert column number to letter (1->A, 2->B, ..., 27->AA)
+const numberToLetter = (num: number): string => {
+  let result = "";
+  let n = num;
+  while (n > 0) {
+    const remainder = (n - 1) % 26;
+    result = String.fromCharCode(65 + remainder) + result;
+    n = Math.floor((n - 1) / 26);
+  }
+  return result;
+};
+
 interface RackDiagramProps {
   rack: IRack;
   open: boolean;
@@ -279,7 +291,7 @@ export function RackDiagram({ rack, open, onOpenChange }: RackDiagramProps) {
                       } `}
                     >
                       <div className="mb-1 text-xs text-gray-500">
-                        [{rowIndex + 1},{colIndex + 1}]
+                        [{rowIndex + 1},{numberToLetter(colIndex + 1)}]
                       </div>
                       {device ? (
                         <div className="text-center">
@@ -306,7 +318,8 @@ export function RackDiagram({ rack, open, onOpenChange }: RackDiagramProps) {
           {selectedCell && (
             <div className="border-t pt-4">
               <h3 className="mb-2 font-medium">
-                Chọn thiết bị cho ô [{selectedCell.row},{selectedCell.col}]
+                Chọn thiết bị cho ô [{selectedCell.row},
+                {numberToLetter(selectedCell.col)}]
               </h3>
               <div className="flex items-center gap-2">
                 <Select onValueChange={handleDeviceSelect}>

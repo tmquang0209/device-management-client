@@ -249,7 +249,9 @@ export default function LoanSlipPage() {
   } = useQuery({
     queryKey: ["partners"],
     queryFn: async (): Promise<IPartner[]> => {
-      const response = await api.get<IResponse<IPartner[]>>("/partners");
+      const response = await api.get<IResponse<IPartner[]>>(
+        "/partners?partnerType=2",
+      );
       return response.data || [];
     },
     retry: (failureCount, error) => {

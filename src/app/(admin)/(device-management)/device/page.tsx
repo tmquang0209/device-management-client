@@ -37,6 +37,18 @@ import { Calendar, MoreHorizontal, Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+// Helper function to convert column number to letter (1->A, 2->B, ..., 27->AA)
+const numberToLetter = (num: number): string => {
+  let result = "";
+  let n = num;
+  while (n > 0) {
+    const remainder = (n - 1) % 26;
+    result = String.fromCharCode(65 + remainder) + result;
+    n = Math.floor((n - 1) / 26);
+  }
+  return result;
+};
+
 const createColumns = (
   deviceTypes?: IDeviceType[],
   deviceLocations?: IDeviceLocation[],
@@ -109,22 +121,26 @@ const createColumns = (
     cell: ({ row }) => {
       const location = row.original.deviceLocation;
       if (!location) return "N/A";
-      return `[${location.xPosition},${location.yPosition}]`;
+      const colLetter = numberToLetter(parseInt(location.yPosition || "0"));
       // return location.rack
-      //   ? `${location.rack.code} [${location.xPosition},${location.yPosition}]`
-      //   : `[${location.xPosition},${location.yPosition}]`;
+      //   ? `${location.rack.code} [${location.xPosition},${colLetter}]`
+      //   : `[${location.xPosition},${colLetter}]`;
+      return `[${location.xPosition},${colLetter}]`;
     },
     enableColumnFilter: false,
     meta: {
       label: "Vị Trí",
       placeholder: "Lọc theo vị trí thiết bị...",
       filterType: "select",
-      options: deviceLocations?.map((loc) => ({
-        label: loc.rack
-          ? `${loc.rack.code} [${loc.xPosition},${loc.yPosition}]`
-          : `[${loc.xPosition},${loc.yPosition}]`,
-        value: loc.id,
-      })),
+      options: deviceLocations?.map((loc) => {
+        const colLetter = numberToLetter(parseInt(loc.yPosition || "0"));
+        return {
+          label: loc.rack
+            ? `${loc.rack.code} [${loc.xPosition},${colLetter}]`
+            : `[${loc.xPosition},${colLetter}]`,
+          value: loc.id,
+        };
+      }),
     },
     size: 200,
   },

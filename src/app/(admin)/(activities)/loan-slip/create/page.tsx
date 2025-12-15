@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/table";
 import { api } from "@/shared/data/api";
 import { IDevice, IResponse } from "@/shared/interfaces";
+import { useAuthStore } from "@/shared/store/auth.store";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
@@ -63,12 +64,14 @@ interface DeviceTypeFilter {
 }
 
 export default function CreateLoanSlipPage() {
+  const { user } = useAuthStore();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [mounted, setMounted] = useState(false);
   // Zod schema for validation
   const loanSlipSchema = z.object({
     code: z.string().optional(),
+    creatorName: z.string().optional(),
     borrowerId: z.string().min(1, "Vui lòng chọn người mượn"),
     note: z.string().optional(),
   });
@@ -79,6 +82,7 @@ export default function CreateLoanSlipPage() {
     resolver: zodResolver(loanSlipSchema),
     defaultValues: {
       code: "",
+      creatorName: user?.name || "",
       borrowerId: "",
       note: "",
     },
@@ -355,6 +359,19 @@ export default function CreateLoanSlipPage() {
                     id="code"
                     {...form.register("code")}
                     placeholder={`GDXM_${dayjs().format("DDMMYY")}_XXX`}
+                    disabled
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+
+              <FormItem>
+                <FormLabel htmlFor="creatorName">Người tạo</FormLabel>
+                <FormControl>
+                  <Input
+                    id="creatorName"
+                    {...form.register("creatorName")}
+                    placeholder="Người tạo"
                     disabled
                   />
                 </FormControl>
