@@ -59,7 +59,7 @@ const createColumns = (): ColumnDef<IPartner>[] => [
   {
     accessorKey: "partnerType",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Loại Đối Tác" />
+      <DataTableColumnHeader column={column} title="Loại Đối Tượng" />
     ),
     cell: ({ row }) => {
       const type = row.getValue("partnerType");
@@ -68,7 +68,7 @@ const createColumns = (): ColumnDef<IPartner>[] => [
     },
     enableColumnFilter: true,
     meta: {
-      label: "Loại Đối Tác",
+      label: "Loại Đối Tượng",
       filterType: "async-select",
       asyncEndpoint: "/params/type/PARTNER_TYPE",
       transformKey: { value: "code", label: "value" },
@@ -182,20 +182,24 @@ export default function PartnerPage() {
   const partnerFields = useMemo((): IFormFieldConfig[] => {
     return [
       {
-        name: "userId",
-        label: "Người Dùng",
-        type: "async-select",
-        placeholder: "Chọn người dùng",
-        endpoint: "/users/get-list",
-        queryParams: { page: 1, pageSize: 50 },
-        transformKey: { value: "id", label: "name" },
-        mappingField: "id",
-        description: "Chọn người dùng để liên kết với đối tượng",
+        name: "name",
+        label: "Tên Đối Tượng",
+        type: "text",
+        placeholder: "Nhập tên đối tượng",
+        description: "Tên đầy đủ của đối tượng",
+        className: "w-full",
+      },
+      {
+        name: "email",
+        label: "Email",
+        type: "text",
+        placeholder: "Nhập email",
+        description: "Địa chỉ email của đối tượng",
         className: "w-full",
       },
       {
         name: "partnerType",
-        label: "Loại Đối Tác",
+        label: "Loại Đối Tượng",
         type: "async-select",
         placeholder: "Chọn loại đối tượng",
         endpoint: "/params/type/PARTNER_TYPE",
@@ -206,7 +210,7 @@ export default function PartnerPage() {
       {
         name: "status",
         label: "Trạng Thái",
-        type: "checkbox",
+        type: "switch",
         placeholder: "Chọn trạng thái",
         options: [
           { label: "Hoạt Động", value: "1" },
@@ -252,10 +256,10 @@ export default function PartnerPage() {
     const isEdit = type === "edit";
     const isDelete = type === "delete";
     const titleMap = {
-      create: "Tạo Đối Tác Mới",
-      edit: "Chỉnh Sửa Đối Tác",
-      view: "Xem Chi Tiết Đối Tác",
-      delete: "Xóa Đối Tác",
+      create: "Tạo Đối Tượng Mới",
+      edit: "Chỉnh Sửa Đối Tượng",
+      view: "Xem Chi Tiết Đối Tượng",
+      delete: "Xóa Đối Tượng",
     } as const;
     const subtitleMap = {
       create: "Điền thông tin bên dưới để tạo đối tượng mới.",
@@ -290,7 +294,7 @@ export default function PartnerPage() {
 
   return (
     <Card className="bg-white p-6 dark:bg-gray-800">
-      <h1 className="text-2xl font-bold">Quản Lý Đối Tác</h1>
+      <h1 className="text-2xl font-bold">Quản Lý Đối Tượng</h1>
       <p className="text-muted-foreground">
         Quản lý đối tượng và thông tin của họ
       </p>

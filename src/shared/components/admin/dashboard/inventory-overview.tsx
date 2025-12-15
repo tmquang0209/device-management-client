@@ -49,7 +49,7 @@ export function InventoryOverview({ counts, loading }: InventoryOverviewProps) {
       color: "text-orange-600",
     },
     {
-      label: "Đối tác",
+      label: "Đối tượng",
       value: counts?.partners || 0,
       icon: Building2,
       color: "text-red-600",
