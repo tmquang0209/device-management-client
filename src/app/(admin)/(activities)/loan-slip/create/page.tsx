@@ -40,7 +40,7 @@ import { useAuthStore } from "@/shared/store/auth.store";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
-import { ArrowLeft, Minus, MoreVertical, Plus } from "lucide-react";
+import { ArrowLeft, Expand, Minus, MoreVertical, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -68,6 +68,7 @@ export default function CreateLoanSlipPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [mounted, setMounted] = useState(false);
+
   // Zod schema for validation
   const loanSlipSchema = z.object({
     code: z.string().optional(),
@@ -87,6 +88,7 @@ export default function CreateLoanSlipPage() {
       note: "",
     },
   });
+
   const [selectedBorrower, setSelectedBorrower] =
     useState<AsyncSelectOption | null>(null);
   const [devices, setDevices] = useState<LoanSlipDevice[]>([]);
@@ -98,6 +100,15 @@ export default function CreateLoanSlipPage() {
   const [deviceToSwap, setDeviceToSwap] = useState<LoanSlipDevice | null>(null);
   const [swapCandidates, setSwapCandidates] = useState<IDevice[]>([]);
   const [loadingSwapCandidates, setLoadingSwapCandidates] = useState(false);
+
+  // New state for expand modal
+  const [expandDialogOpen, setExpandDialogOpen] = useState(false);
+  const [currentFilterForExpand, setCurrentFilterForExpand] =
+    useState<DeviceTypeFilter | null>(null);
+  const [availableDevicesForExpand, setAvailableDevicesForExpand] = useState<
+    IDevice[]
+  >([]);
+  const [loadingAvailableDevices, setLoadingAvailableDevices] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -168,6 +179,63 @@ export default function CreateLoanSlipPage() {
     }
   };
 
+  // Open expand dialog to select devices manually
+  const handleOpenExpandDialog = async (filter: DeviceTypeFilter) => {
+    if (!filter.deviceTypeId) {
+      toast.error("Vui lòng chọn loại thiết bị trước");
+      return;
+    }
+
+    setCurrentFilterForExpand(filter);
+    setExpandDialogOpen(true);
+    setLoadingAvailableDevices(true);
+
+    try {
+      const response = await api.get<IResponse<IDevice[]>>(
+        "/devices/available-for-loan",
+        {
+          params: {
+            deviceTypeId: filter.deviceTypeId,
+            quantity: 100, // Get many devices for selection
+          },
+        },
+      );
+
+      // Filter out already selected devices
+      const available = (response.data || []).filter(
+        (d) => !devices.some((selected) => selected.deviceId === d.id),
+      );
+      setAvailableDevicesForExpand(available);
+    } catch (error) {
+      console.error("Failed to fetch available devices:", error);
+      toast.error("Không thể lấy danh sách thiết bị");
+      setAvailableDevicesForExpand([]);
+    } finally {
+      setLoadingAvailableDevices(false);
+    }
+  };
+
+  // Add device from expand modal
+  const handleAddDeviceFromExpand = (device: IDevice) => {
+    const newDevice: LoanSlipDevice = {
+      id: `temp-${device.id}`,
+      deviceId: device.id,
+      deviceCode: device.serial || device.id.slice(0, 8),
+      deviceName: device.deviceName,
+      deviceType: device.deviceType?.deviceTypeName || "N/A",
+      deviceTypeId: device.deviceType?.id || "",
+    };
+
+    setDevices([...devices, newDevice]);
+
+    // Remove from available list
+    setAvailableDevicesForExpand(
+      availableDevicesForExpand.filter((d) => d.id !== device.id),
+    );
+
+    toast.success(`Đã thêm ${device.deviceName}`);
+  };
+
   // Add new device type filter row
   const handleAddDeviceTypeFilter = () => {
     setDeviceTypeFilters([
@@ -225,13 +293,12 @@ export default function CreateLoanSlipPage() {
 
     try {
       if (device.deviceTypeId) {
-        // Fetch many devices of same type for swap options
         const response = await api.get<IResponse<IDevice[]>>(
           "/devices/available-for-loan",
           {
             params: {
               deviceTypeId: device.deviceTypeId,
-              quantity: 100, // Get many devices for swap options
+              quantity: 100,
             },
           },
         );
@@ -475,6 +542,20 @@ export default function CreateLoanSlipPage() {
                   />
                 </div>
 
+                {/* Expand button - only show when device type is selected */}
+                {filter.deviceTypeId && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleOpenExpandDialog(filter)}
+                    className="gap-2"
+                  >
+                    <Expand className="h-4 w-4" />
+                    Chọn thiết bị
+                  </Button>
+                )}
+
                 <Button
                   type="button"
                   variant="outline"
@@ -569,6 +650,97 @@ export default function CreateLoanSlipPage() {
           </div>
         </form>
       </Form>
+
+      {/* Expand Device Selection Dialog */}
+      <Dialog open={expandDialogOpen} onOpenChange={setExpandDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Chọn thiết bị</DialogTitle>
+            <DialogDescription>
+              Chọn thiết bị từ danh sách có sẵn:{" "}
+              <span className="font-semibold">
+                {currentFilterForExpand?.deviceTypeName}
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="max-h-[500px] overflow-y-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50 dark:bg-gray-800">
+                  <TableHead className="font-semibold">Mã thiết bị</TableHead>
+                  <TableHead className="font-semibold">Tên thiết bị</TableHead>
+                  <TableHead className="font-semibold">Ngày nhập</TableHead>
+                  <TableHead className="w-24 font-semibold">Thao tác</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loadingAvailableDevices ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={4}
+                      className="text-center text-gray-500"
+                    >
+                      <div className="flex items-center justify-center gap-2 py-8">
+                        <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-blue-600" />
+                        Đang tải danh sách thiết bị...
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : availableDevicesForExpand.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={4}
+                      className="py-8 text-center text-gray-500"
+                    >
+                      Không có thiết bị nào khả dụng
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  availableDevicesForExpand.map((device) => (
+                    <TableRow key={device.id}>
+                      <TableCell className="font-mono text-sm text-green-600">
+                        {device.serial || device.id.slice(0, 8)}
+                      </TableCell>
+                      <TableCell>{device.deviceName}</TableCell>
+                      <TableCell className="text-sm text-gray-500">
+                        {device.createdAt
+                          ? new Date(device.createdAt).toLocaleDateString(
+                              "vi-VN",
+                            )
+                          : "N/A"}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => handleAddDeviceFromExpand(device)}
+                        >
+                          Thêm
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setExpandDialogOpen(false);
+                setCurrentFilterForExpand(null);
+                setAvailableDevicesForExpand([]);
+              }}
+            >
+              Đóng
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Swap Device Dialog */}
       <Dialog open={swapDialogOpen} onOpenChange={setSwapDialogOpen}>
